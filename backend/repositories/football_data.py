@@ -1010,6 +1010,65 @@ async def synced_competitions(session: AsyncSession) -> list[Competition]:
     return list(rows)
 
 
+async def competition_by_provider_id(
+    session: AsyncSession,
+    provider_competition_id: int,
+) -> Competition | None:
+    return await session.scalar(
+        select(Competition).where(
+            Competition.provider == PROVIDER,
+            Competition.provider_competition_id == provider_competition_id,
+            Competition.is_active.is_(True),
+        )
+    )
+
+
+async def competition_season_by_provider_and_year(
+    session: AsyncSession,
+    provider_competition_id: int,
+    season_year: int,
+) -> CompetitionSeason | None:
+    return await session.scalar(
+        select(CompetitionSeason)
+        .join(Competition, Competition.id == CompetitionSeason.competition_id)
+        .join(Season, Season.id == CompetitionSeason.season_id)
+        .options(joinedload(CompetitionSeason.season))
+        .where(
+            Competition.provider == PROVIDER,
+            Competition.provider_competition_id == provider_competition_id,
+            Season.year == season_year,
+        )
+    )
+
+
+async def competition_finished_fixtures(
+    session: AsyncSession,
+    provider_competition_id: int,
+    season_year: int,
+) -> list[Fixture]:
+    rows = await session.scalars(
+        select(Fixture)
+        .join(Competition, Competition.id == Fixture.competition_id)
+        .join(Season, Season.id == Fixture.season_id)
+        .options(
+            joinedload(Fixture.competition),
+            joinedload(Fixture.season),
+            joinedload(Fixture.home_team),
+            joinedload(Fixture.away_team),
+            joinedload(Fixture.youtube_comment_cache),
+            joinedload(Fixture.event_sync_status),
+        )
+        .where(
+            Fixture.provider == PROVIDER,
+            Competition.provider_competition_id == provider_competition_id,
+            Season.year == season_year,
+            Fixture.status_short.in_(FINISHED_STATUS_CODES),
+        )
+        .order_by(Fixture.kickoff_at.desc())
+    )
+    return list(rows)
+
+
 async def synced_competition_seasons(session: AsyncSession) -> list[Season]:
     rows = await session.scalars(
         select(Season)

@@ -1,0 +1,69 @@
+<!-- Atmos FC Competition Database page -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atmos FC - Competition Database</title>
+
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/ambient-signal.css?v=20260811-signal-echoes">
+    <link rel="stylesheet" href="css/competition.css?v=20261005-competition-database">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  </head>
+
+  <body class="competition-page">
+    <canvas class="ambient-signal" data-ambient-signal aria-hidden="true"></canvas>
+
+    <header class="competition-nav">
+      <a class="brand" href="analysis.html" data-back-link>&lt;- Back</a>
+      <img class="competition-nav-logo" src="assets/atmosfc-logo-v2.svg?v=20260811-transparent-logo" alt="Atmos FC">
+    </header>
+
+    <main class="content competition-content">
+      <p class="status competition-status" data-status aria-live="polite"></p>
+
+      <section class="competition-hero">
+        <div class="competition-hero-copy">
+          <p class="competition-kicker">Atmos FC Competition Database</p>
+          <h1 data-competition-name>Competition database</h1>
+          <p data-competition-summary>Loading stored competition data...</p>
+        </div>
+        <div class="competition-hero-logo-shell" data-competition-logo-shell hidden>
+          <img class="competition-hero-logo" data-competition-logo alt="">
+        </div>
+      </section>
+
+      <section class="competition-facts" data-competition-facts aria-label="Competition facts"></section>
+
+      <section class="competition-section">
+        <div class="competition-section-heading">
+          <h2>Atmos FC Database snapshot</h2>
+        </div>
+        <div class="competition-metrics" data-competition-metrics></div>
+      </section>
+
+      <section class="competition-section">
+        <div class="competition-section-heading">
+          <h2 data-latest-heading>Latest results</h2>
+        </div>
+        <div class="competition-results" data-latest-matches></div>
+      </section>
+
+      <section class="competition-section">
+        <div class="competition-section-heading">
+          <h2 data-clubs-heading>Competing clubs</h2>
+        </div>
+        <div class="competition-clubs" data-competition-clubs></div>
+      </section>
+
+      <section class="competition-source-card" data-competition-sources></section>
+    </main>
+
+    <script src="js/config.js?v=20260804-archive-search-final"></script>
+    <script src="js/api.js?v=20260804-archive-search-final"></script>
+    <script src="js/ambient-signal.js?v=20260811-signal-echoes"></script>
+    <script src="js/competition.js?v=20261005-competition-database"></script>
+  </body>
+</html>

@@ -60,10 +60,13 @@ function renderAnalysis(data) {
 
 function renderMatchHeader(match) {
   applyMatchVisuals(match);
+  const competitionMarkup = competitionLinkMarkup(match);
   badgesEl.innerHTML = `
-    <span class="analysis-pill">${escapeHtml(match.competition || "Competition")}</span>
+    ${competitionMarkup}
     <span class="analysis-pill analysis-pill-muted">${escapeHtml(stageWithSeason(match))}</span>
   `;
+  const competitionLink = badgesEl.querySelector("[data-competition-link]");
+  if (competitionLink) competitionLink.addEventListener("click", storeCompetitionSourceUrl);
   matchDetailEl.textContent = [formatDate(match.date), match.venue || "Venue unavailable"].filter(Boolean).join(" · ");
   setCrest(homeCrestEl, match.home_crest);
   setCrest(awayCrestEl, match.away_crest);
@@ -82,6 +85,21 @@ function renderMatchHeader(match) {
     halfTimeEl.innerHTML = "";
     halfTimeEl.hidden = true;
   }
+}
+
+function competitionLinkMarkup(match) {
+  const competitionId = Number.parseInt(match.competition_id, 10);
+  const seasonYear = Number.parseInt(match.season_year, 10);
+  const label = escapeHtml(match.competition || "Competition");
+  if (!Number.isInteger(competitionId) || competitionId <= 0 || !Number.isInteger(seasonYear) || seasonYear <= 0) {
+    return `<span class="analysis-pill">${label}</span>`;
+  }
+  const href = `competition.html?competition_id=${encodeURIComponent(competitionId)}&season=${encodeURIComponent(seasonYear)}`;
+  return `<a class="analysis-pill analysis-pill-link" href="${href}" data-competition-link>${label}</a>`;
+}
+
+function storeCompetitionSourceUrl() {
+  sessionStorage.setItem("competitionSourceUrl", window.location.href);
 }
 
 function displayScore(match) {
@@ -559,7 +577,9 @@ function setStatus(message) {
 
 function setupBackLink() {
   if (!backLinkEl) return;
-  backLinkEl.href = sessionStorage.getItem("resultsReturnUrl") || "results.html";
+  backLinkEl.href = params.get("from") === "competition"
+    ? sessionStorage.getItem("competitionReturnUrl") || "index.html"
+    : sessionStorage.getItem("resultsReturnUrl") || "results.html";
 }
 
 function escapeHtml(value) {

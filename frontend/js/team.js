@@ -23,7 +23,9 @@ async function init() {
 
 function setupBackLink() {
   if (!backLinkEl) return;
-  backLinkEl.href = sessionStorage.getItem("analysisReturnUrl")
+  backLinkEl.href = params.get("from") === "competition"
+    ? sessionStorage.getItem("competitionReturnUrl") || "index.html"
+    : sessionStorage.getItem("analysisReturnUrl")
     || sessionStorage.getItem("resultsReturnUrl")
     || "index.html";
 }

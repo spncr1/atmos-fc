@@ -16,12 +16,18 @@ from backend.models.schemas import (
     AnalyseMeta,
     MatchSearchResponse,
     MetadataResponse,
+    CompetitionProfileResponse,
     TeamProfileResponse,
 )
 from backend.repositories import football_data as repo
 from backend.services import football_api
 from backend.services.football_api import FootballDataError
 from backend.services.metadata import MetadataError, frontend_metadata
+from backend.services.competition_profiles import (
+    CompetitionProfileNotFoundError,
+    CompetitionProfileUnavailableError,
+    competition_profile,
+)
 from backend.services.team_profiles import TeamProfileNotFoundError, TeamProfileUnavailableError, team_profile
 from backend.services.matches import (
     MatchDataError,
@@ -105,6 +111,21 @@ async def get_team_profile(team_id: int) -> TeamProfileResponse:
     except TeamProfileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except TeamProfileUnavailableError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.get("/competitions/{competition_id}", response_model=CompetitionProfileResponse)
+async def get_competition_profile(
+    competition_id: int,
+    season: int = Query(ge=1900, le=2100),
+) -> CompetitionProfileResponse:
+    # Return a season-specific competition database snapshot from stored data.
+
+    try:
+        return await competition_profile(competition_id, season)
+    except CompetitionProfileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except CompetitionProfileUnavailableError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 

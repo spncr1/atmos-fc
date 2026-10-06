@@ -1,5 +1,6 @@
 # Pydantic request/response models
 
+from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -43,10 +44,12 @@ class MatchSummary(BaseModel):
     half_time_score: Optional[str] = None
     competition: str
     competition_code: str
+    competition_id: Optional[int] = None
     date: str
     venue: Optional[str] = None
     round: Optional[str] = None
     season: Optional[str] = None
+    season_year: Optional[int] = None
     status: Optional[str] = None
     youtube_comment_count: Optional[int] = None
     youtube_analysed_comment_count: Optional[int] = None
@@ -144,6 +147,43 @@ class TeamProfileResponse(BaseModel):
     source_attribution_url: Optional[str] = None
     license_label: Optional[str] = None
     facts: Dict[str, Any] = Field(default_factory=dict)
+    data_source: str = "local"
+
+
+class CompetitionClub(BaseModel):
+    # One club represented by stored fixtures for a competition season.
+
+    provider_team_id: int
+    name: str
+    logo_url: Optional[str] = None
+    country_name: Optional[str] = None
+
+
+class CompetitionProfileResponse(BaseModel):
+    # One season-specific Atmos FC competition database page.
+
+    provider_competition_id: int
+    code: str
+    name: str
+    short_name: str
+    competition_type: str
+    country_name: Optional[str] = None
+    country_code: Optional[str] = None
+    logo_url: Optional[str] = None
+    flag_url: Optional[str] = None
+    official_website: Optional[str] = None
+    summary: str
+    season_year: int
+    season_label: str
+    season_start_date: Optional[date] = None
+    season_end_date: Optional[date] = None
+    season_is_current: bool = False
+    finished_match_count: int = 0
+    goals_scored: int = 0
+    club_count: int = 0
+    latest_result_at: Optional[datetime] = None
+    latest_matches: List[MatchSummary] = Field(default_factory=list)
+    clubs: List[CompetitionClub] = Field(default_factory=list)
     data_source: str = "local"
 
 

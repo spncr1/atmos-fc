@@ -109,6 +109,19 @@
   font-weight: 700;
 }
 
+.analysis-pill-link {
+  text-decoration: none;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+
+.analysis-pill-link:hover,
+.analysis-pill-link:focus-visible {
+  color: var(--accent);
+  background: #35353c;
+  outline: 2px solid rgba(200, 255, 71, 0.42);
+  outline-offset: 2px;
+}
+
 .analysis-pill-muted {
   color: var(--negative-muted);
   background: rgba(46, 46, 52, 0.42);

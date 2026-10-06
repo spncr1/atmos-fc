@@ -1,0 +1,368 @@
+/* ATMOS FC COMPETITION DATABASE */
+
+.competition-page {
+  background: var(--wash);
+}
+
+.competition-nav {
+  border-bottom: 0;
+}
+
+.competition-nav-logo {
+  display: block;
+  width: 145px;
+  height: auto;
+}
+
+.competition-content {
+  display: grid;
+  gap: 24px;
+  padding: 34px 0 64px;
+}
+
+.competition-status {
+  margin: 0;
+}
+
+.competition-hero,
+.competition-facts,
+.competition-section,
+.competition-source-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.competition-hero {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(180px, 22vw, 260px);
+  gap: 48px;
+  min-height: 220px;
+  padding: 34px;
+  align-items: center;
+  background:
+    radial-gradient(circle at 83% 50%, rgba(200, 255, 71, 0.15) 0, transparent 34%),
+    linear-gradient(110deg, rgba(31, 31, 36, 0.96), rgba(200, 255, 71, 0.07)),
+    var(--surface);
+}
+
+.competition-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.18) 100%);
+}
+
+.competition-hero-copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 14px;
+}
+
+.competition-kicker,
+.competition-section-kicker {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.competition-hero h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(2.2rem, 6vw, 5rem);
+  font-weight: 900;
+  line-height: 0.95;
+}
+
+.competition-hero [data-competition-summary] {
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.competition-hero-logo-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: clamp(170px, 19vw, 250px);
+  aspect-ratio: 1;
+  justify-self: center;
+  border: 1px solid rgba(200, 255, 71, 0.48);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(200, 255, 71, 0.1), rgba(17, 17, 20, 0.92) 68%);
+  box-shadow: 0 0 0 6px rgba(0, 0, 0, 0.16), 0 0 48px rgba(200, 255, 71, 0.18);
+}
+
+.competition-hero-logo-shell[hidden] {
+  display: none;
+}
+
+.competition-hero-logo {
+  width: 68%;
+  max-height: 68%;
+  object-fit: contain;
+}
+
+.competition-facts,
+.competition-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+}
+
+.competition-fact,
+.competition-metric {
+  display: grid;
+  gap: 8px;
+  min-height: 94px;
+  padding: 18px;
+  align-content: center;
+  background: var(--panel);
+}
+
+.competition-fact span,
+.competition-metric span {
+  color: var(--negative-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.competition-fact strong,
+.competition-metric strong {
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.competition-metric strong {
+  color: var(--accent);
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.competition-section {
+  overflow: hidden;
+}
+
+.competition-section-heading {
+  display: grid;
+  gap: 8px;
+  padding: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.competition-section-heading h2,
+.competition-source-card h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.competition-results {
+  display: grid;
+}
+
+.competition-result {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(0, 2fr) auto;
+  gap: 20px;
+  width: 100%;
+  padding: 18px 24px;
+  align-items: center;
+  color: var(--ink);
+  text-align: left;
+  background: var(--panel);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.competition-result:last-child {
+  border-bottom: 0;
+}
+
+.competition-result:hover,
+.competition-result:focus-visible,
+.competition-club:hover,
+.competition-club:focus-visible {
+  background: var(--surface-elevated);
+  outline: none;
+}
+
+.competition-result-meta {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.competition-result-teams {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.competition-result-team {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-weight: 800;
+}
+
+.competition-result-team:last-child {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.competition-result-team img,
+.competition-club img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.competition-result-score {
+  font-size: 1.08rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.competition-result-action {
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.competition-clubs {
+  display: grid;
+  grid-template-columns: repeat(var(--club-columns, 4), minmax(0, 1fr));
+  background: var(--surface);
+}
+
+.competition-club {
+  display: flex;
+  gap: 12px;
+  min-height: 64px;
+  padding: 14px 18px;
+  align-items: center;
+  color: var(--ink);
+  background: var(--panel);
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-decoration: none;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.competition-source-card {
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+}
+
+.competition-source-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.competition-source-list a {
+  color: var(--accent);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.competition-source-list a:hover {
+  text-decoration: underline;
+}
+
+.competition-empty {
+  margin: 0;
+  padding: 24px;
+  color: var(--muted);
+  background: var(--panel);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+@media (max-width: 860px) {
+  .competition-facts,
+  .competition-metrics,
+  .competition-clubs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .competition-result {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .competition-result-action {
+    justify-self: end;
+  }
+}
+
+@media (max-width: 620px) {
+  .competition-nav-logo {
+    width: 118px;
+  }
+
+  .competition-content {
+    gap: 18px;
+    padding-top: 20px;
+  }
+
+  .competition-hero {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    min-height: 180px;
+    padding: 24px;
+    background:
+      radial-gradient(circle at 48% 76%, rgba(200, 255, 71, 0.15) 0, transparent 42%),
+      linear-gradient(150deg, rgba(31, 31, 36, 0.96), rgba(200, 255, 71, 0.07)),
+      var(--surface);
+  }
+
+  .competition-hero-logo-shell {
+    justify-self: start;
+    width: min(48vw, 150px);
+  }
+
+  .competition-facts,
+  .competition-metrics,
+  .competition-clubs {
+    grid-template-columns: 1fr;
+  }
+
+  .competition-result-teams {
+    gap: 8px;
+  }
+
+  .competition-result-team {
+    display: grid;
+    justify-items: start;
+    font-size: 0.82rem;
+  }
+
+  .competition-result-team:last-child {
+    justify-items: end;
+  }
+}
