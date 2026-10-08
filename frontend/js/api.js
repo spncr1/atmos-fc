@@ -22,7 +22,7 @@ function resolveApiBase() {
 
 async function apiGet(path, params = {}) {
   if (!API_BASE) {
-    throw new Error("Frontend API URL is not configured. Set ATMOS_CONFIG.API_BASE in js/config.js to the deployed backend URL.");
+    throw new Error("Atmos FC data is unavailable right now. Try again shortly.");
   }
   const url = new URL(`${API_BASE}${path}`);
   Object.entries(params).forEach(([key, value]) => {
@@ -36,7 +36,7 @@ async function apiGet(path, params = {}) {
 
 async function apiPost(path, body = {}) {
   if (!API_BASE) {
-    throw new Error("Frontend API URL is not configured. Set ATMOS_CONFIG.API_BASE in js/config.js to the deployed backend URL.");
+    throw new Error("Atmos FC data is unavailable right now. Try again shortly.");
   }
   const response = await fetchApi(`${API_BASE}${path}`, {
     method: "POST",
@@ -50,14 +50,16 @@ async function fetchApi(url, options) {
   try {
     return await fetch(url, options);
   } catch (error) {
-    throw new Error(`Atmos FC API is unreachable at ${API_BASE}. Check the backend deployment and frontend API URL.`);
+    throw new Error("Atmos FC data is unavailable right now. Try again shortly.");
   }
 }
 
 async function readResponse(response) {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload.detail || "Atmos FC API request failed");
+    const detail = typeof payload.detail === "string" ? payload.detail : "";
+    const exposesInternalSource = /api-football|wikidata|provider/i.test(detail);
+    throw new Error(detail && !exposesInternalSource ? detail : "Atmos FC data could not be loaded.");
   }
   return payload;
 }

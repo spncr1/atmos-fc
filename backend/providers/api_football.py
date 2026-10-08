@@ -90,6 +90,14 @@ class ApiFootballClient:
             },
         )
 
+    async def squad(self, team_id: int) -> list[dict[str, Any]]:
+        """Return the current squad for one team."""
+
+        return await self.response_list(
+            "/players/squads",
+            {"team": team_id},
+        )
+
     async def fixtures(
         self,
         *,

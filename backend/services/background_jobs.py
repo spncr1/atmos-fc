@@ -14,11 +14,15 @@ from backend.models.schemas import MatchSummary
 from backend.repositories import football_data as repo
 from backend.services.matches import fixture_to_summary, hydrate_fixture_events, visual_profiles_for_fixtures
 from backend.services.sync import ensure_archive_scope_synced
+from backend.services.team_honours import ensure_team_honours
+from backend.services.team_profile_content import profile_content_for
+from backend.services.team_profiles import profile_enrichment
 from backend.services.youtube_cache import fetch_and_cache_youtube_comment_count
 
 JOB_ARCHIVE_HYDRATION = "archive_hydration"
 JOB_FIXTURE_EVENTS = "fixture_events_hydration"
 JOB_YOUTUBE_COMMENT_COUNT = "youtube_comment_count"
+JOB_TEAM_HONOURS = "team_honours"
 YOUTUBE_FAILED_RETRY_AFTER = timedelta(hours=24)
 YOUTUBE_RATE_LIMIT_RETRY_AFTER = timedelta(hours=12)
 
@@ -163,6 +167,9 @@ async def process_job(job_type: str, payload: dict[str, Any]) -> None:
     if job_type == JOB_ARCHIVE_HYDRATION:
         await process_archive_hydration_job(payload)
         return
+    if job_type == JOB_TEAM_HONOURS:
+        await process_team_honours_job(payload)
+        return
     raise ValueError(f"Unsupported background job type: {job_type}")
 
 
@@ -217,6 +224,26 @@ async def process_archive_hydration_job(payload: dict[str, Any]) -> None:
         provider_competition_id=payload.get("provider_competition_id"),
         season_year=payload.get("season_year"),
     )
+
+
+async def process_team_honours_job(payload: dict[str, Any]) -> None:
+    """Resolve and cache major honours for one stored club."""
+
+    provider_team_id = int(payload["provider_team_id"])
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
+        team = await repo.team_by_provider_id(session, provider_team_id)
+        if team is None:
+            raise ValueError(f"Team {provider_team_id} is not cached locally.")
+        enrichment = await profile_enrichment(session, team)
+        honours = await ensure_team_honours(
+            team,
+            enrichment,
+            manual_content=profile_content_for(team.name),
+        )
+        if honours is None:
+            raise ValueError(f"Major honours could not be resolved for team {provider_team_id}.")
+        await session.commit()
 
 
 async def match_summary_for_provider_fixture_id(provider_fixture_id: int) -> MatchSummary | None:

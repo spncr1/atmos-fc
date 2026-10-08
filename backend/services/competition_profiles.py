@@ -35,6 +35,105 @@ OFFICIAL_COMPETITION_WEBSITES = {
     848: "https://www.uefa.com/uefaconferenceleague/",
 }
 
+COMPETITION_EDITORIAL_CONTENT = {
+    39: {
+        "summary": (
+            "England's top flight has operated as the Premier League since 1992, when its founding clubs "
+            "broke away from the Football League. Twenty clubs play a home-and-away season, with promotion "
+            "and relegation connecting the competition to the EFL Championship."
+        ),
+        "wikipedia_url": "https://en.wikipedia.org/wiki/Premier_League",
+    },
+    140: {
+        "summary": (
+            "La Liga is the highest level of Spanish football and has crowned the country's league champion "
+            "since 1929. Its twenty clubs contest a 38-matchday season, with promotion and relegation linking "
+            "the division to the Segunda Division."
+        ),
+        "wikipedia_url": "https://en.wikipedia.org/wiki/La_Liga",
+    },
+    78: {
+        "summary": (
+            "The Bundesliga is Germany's nationwide top division, launched for the 1963/64 season after the "
+            "country moved away from regional elite leagues. Eighteen clubs compete from August to May, with "
+            "promotion and relegation connecting the league to the 2. Bundesliga."
+        ),
+        "wikipedia_url": "https://en.wikipedia.org/wiki/Bundesliga",
+    },
+    135: {
+        "summary": (
+            "Serie A is Italy's highest division, taking on its national round-robin format in 1929/30 while "
+            "building on an Italian championship first contested in 1898. Twenty clubs compete for the title, "
+            "whose winners wear the scudetto emblem during the following season."
+        ),
+        "wikipedia_url": "https://en.wikipedia.org/wiki/Serie_A",
+    },
+    61: {
+        "summary": (
+            "Ligue 1 is France's professional top division. It began in 1932 as National, spent most of its "
+            "history under the Division 1 name, and became Ligue 1 in 2002. Eighteen clubs now compete with "
+            "promotion and relegation to and from Ligue 2."
+        ),
+        "wikipedia_url": "https://en.wikipedia.org/wiki/Ligue_1",
+    },
+    88: {
+        "summary": (
+            "The Eredivisie is the highest level of Dutch football. It was established in 1956 when the KNVB "
+            "replaced the regional structure with a nationwide league in which the country's leading clubs "
+            "could compete directly for the title."
+        ),
+        "wikipedia_url": "https://en.wikipedia.org/wiki/Eredivisie",
+    },
+    94: {
+        "summary": (
+            "Liga Portugal is the top tier of Portuguese football, tracing its national league competition to "
+            "1934. The division adopted the Primeira Liga name after Portugal's professional league body took "
+            "control of the country's two nationwide professional tiers in 1999."
+        ),
+        "wikipedia_url": "https://en.wikipedia.org/wiki/Primeira_Liga",
+    },
+    144: {
+        "summary": (
+            "The Belgian Pro League is Belgium's highest football division and traces its history to the "
+            "country's first round-robin championship in 1895/96. Its structure has evolved repeatedly across "
+            "more than a century of national competition, including changes to league and postseason formats."
+        ),
+        "wikipedia_url": "https://en.wikipedia.org/wiki/Belgian_Pro_League",
+    },
+    203: {
+        "summary": (
+            "The Super Lig is Turkey's highest football division. The modern nationwide league began as the "
+            "Milli Lig in 1959, replacing an era built around major regional competitions and the short-lived "
+            "Federation Cup used to determine Turkey's entrant in the European Cup."
+        ),
+        "wikipedia_url": "https://en.wikipedia.org/wiki/S%C3%BCper_Lig",
+    },
+    2: {
+        "summary": (
+            "The UEFA Champions League is Europe's premier annual club competition. Founded in 1955 as the "
+            "European Champion Clubs' Cup and rebranded in 1992, it brings together leading clubs from UEFA's "
+            "national associations through qualifying, a league phase and knockout rounds."
+        ),
+        "wikipedia_url": "https://en.wikipedia.org/wiki/UEFA_Champions_League",
+    },
+    3: {
+        "summary": (
+            "The UEFA Europa League is the second tier of European club competition. Introduced in 1971 as the "
+            "UEFA Cup and renamed in 2009, it now progresses from qualifying into a league phase and knockouts, "
+            "with the winner earning a place in the following Champions League."
+        ),
+        "wikipedia_url": "https://en.wikipedia.org/wiki/UEFA_Europa_League",
+    },
+    848: {
+        "summary": (
+            "The UEFA Conference League is Europe's third-tier club competition, launched in 2021 to give more "
+            "clubs and national associations a route into continental football. Originally called the Europa "
+            "Conference League, it adopted its shorter name and a 36-team league phase in 2024/25."
+        ),
+        "wikipedia_url": "https://en.wikipedia.org/wiki/UEFA_Conference_League",
+    },
+}
+
 SUPPORTED_BY_PROVIDER_ID = {
     int(definition["provider_id"]): definition
     for definition in SUPPORTED_COMPETITIONS
@@ -94,6 +193,7 @@ async def competition_profile(
     if group == "European competitions" and country_name == "World":
         country_name = "Europe"
     season_label = season.label if season else repo.season_label(season_year)
+    editorial = COMPETITION_EDITORIAL_CONTENT[provider_competition_id]
 
     return CompetitionProfileResponse(
         provider_competition_id=provider_competition_id,
@@ -106,7 +206,8 @@ async def competition_profile(
         logo_url=(competition.logo_url if competition else None) or definition.get("logo_url"),
         flag_url=competition.flag_url if competition else None,
         official_website=safe_official_url(OFFICIAL_COMPETITION_WEBSITES.get(provider_competition_id)),
-        summary=competition_summary(name, competition_type, country_name, season_label, group),
+        wikipedia_url=safe_official_url(editorial["wikipedia_url"]),
+        summary=editorial["summary"],
         season_year=season_year,
         season_label=season_label,
         season_start_date=competition_season.start_date if competition_season else None,
@@ -122,27 +223,6 @@ async def competition_profile(
         latest_matches=[fixture_to_summary(fixture) for fixture in fixtures[:6]],
         clubs=clubs,
         data_source="local" if competition else "supported_definition",
-    )
-
-
-def competition_summary(
-    name: str,
-    competition_type: str,
-    country_name: str | None,
-    season_label: str,
-    group: str,
-) -> str:
-    if group == "European competitions":
-        identity = "a European club competition"
-    elif competition_type.casefold() == "league" and country_name:
-        identity = f"a domestic league in {country_name}"
-    elif country_name:
-        identity = f"a {competition_type.lower()} competition in {country_name}"
-    else:
-        identity = f"a {competition_type.lower()} competition"
-    return (
-        f"{name} is {identity}. Atmos FC records finished matches and post-match fan reaction "
-        f"for the {season_label} season."
     )
 
 

@@ -1,1 +1,21 @@
 1.0.0
+
+ATMOS FC USER-FACING CONTENT RULE
+
+External providers and internal data plumbing may support Atmos FC behind the
+scenes, but they must not be presented as product content in the interface.
+
+- Never render provider IDs, Wikidata IDs, matching confidence, source-matching
+  review states, provider names, API names, or other internal sourcing mechanics
+  as user-facing labels, facts, statuses, metrics, headings, or descriptive copy.
+- Provider-backed information must be translated into useful Atmos FC content.
+- Source links may include relevant official or editorial references, but must
+  use human-readable labels and must not expose internal identifiers or matching
+  machinery.
+- Only expose provider or sourcing diagnostics when Spencer explicitly requests
+  a diagnostic or administrative interface.
+- Never imply that Atmos FC has user profiles, personal reading history, saved
+  reads, user-owned analyses, or personalised tracking unless those features
+  have actually been implemented and Spencer has explicitly approved them.
+- The current product language is match search and match analysis. Describe
+  stored information as Atmos FC match data, never as something a user has read.

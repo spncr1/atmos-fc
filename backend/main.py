@@ -103,11 +103,14 @@ async def get_metadata() -> MetadataResponse:
 
 
 @app.get("/teams/{team_id}", response_model=TeamProfileResponse)
-async def get_team_profile(team_id: int) -> TeamProfileResponse:
-    # Return basic API-Football facts for one team profile page.
+async def get_team_profile(
+    team_id: int,
+    season: int | None = Query(default=None, ge=1900, le=2100),
+) -> TeamProfileResponse:
+    # Return an Atmos FC team profile for one selected season.
 
     try:
-        return await team_profile(team_id)
+        return await team_profile(team_id, season)
     except TeamProfileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except TeamProfileUnavailableError as exc:

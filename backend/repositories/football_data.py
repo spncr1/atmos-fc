@@ -8,6 +8,7 @@ import re
 import unicodedata
 
 from sqlalchemy import and_, delete, or_, func, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased, joinedload
 
@@ -140,10 +141,20 @@ async def upsert_team(session: AsyncSession, raw: dict[str, Any]) -> Team:
     if team is None:
         team = Team(**values)
         session.add(team)
+        is_new = True
     else:
         _assign(team, values)
+        is_new = False
     await session.flush()
     await link_team_visual_profile(session, team)
+    if is_new:
+        await enqueue_background_job(
+            session,
+            job_type="team_honours",
+            job_key=str(provider_id),
+            payload={"provider_team_id": provider_id},
+            priority=180,
+        )
     return team
 
 
@@ -159,6 +170,14 @@ async def upsert_teams(session: AsyncSession, rows: list[dict[str, Any]]) -> dic
         if team is None:
             team = Team(**values)
             session.add(team)
+            await session.flush()
+            await enqueue_background_job(
+                session,
+                job_type="team_honours",
+                job_key=str(provider_id),
+                payload={"provider_team_id": provider_id},
+                priority=180,
+            )
         else:
             _assign(team, values)
         teams[provider_id] = team
@@ -499,6 +518,54 @@ async def fixtures_by_provider_fixture_ids(
         )
     )
     return list(rows)
+
+
+async def teams_represented_in_competitions(
+    session: AsyncSession,
+    provider_competition_ids: set[int],
+) -> list[Team]:
+    """Return every distinct club represented by stored fixtures in scope."""
+
+    if not provider_competition_ids:
+        return []
+    rows = await session.scalars(
+        select(Team)
+        .join(Fixture, or_(Fixture.home_team_id == Team.id, Fixture.away_team_id == Team.id))
+        .join(Competition, Competition.id == Fixture.competition_id)
+        .where(
+            Competition.provider_competition_id.in_(provider_competition_ids),
+            Team.is_national.is_(False),
+        )
+        .distinct()
+        .order_by(Team.name.asc())
+    )
+    return list(rows)
+
+
+async def queue_team_honours_jobs(session: AsyncSession, teams: list[Team]) -> int:
+    """Queue honours jobs for many clubs in one database operation."""
+
+    if not teams:
+        return 0
+    now = datetime.now(timezone.utc)
+    values = [
+        {
+            "job_type": "team_honours",
+            "job_key": str(team.provider_team_id),
+            "status": "queued",
+            "priority": 180,
+            "attempts": 0,
+            "max_attempts": 3,
+            "available_at": now,
+            "payload": {"provider_team_id": team.provider_team_id},
+        }
+        for team in teams
+    ]
+    statement = pg_insert(BackgroundJob).values(values).on_conflict_do_nothing(
+        index_elements=[BackgroundJob.job_type, BackgroundJob.job_key],
+    )
+    await session.execute(statement)
+    return len(values)
 
 
 async def enqueue_background_job(
@@ -1066,6 +1133,59 @@ async def competition_finished_fixtures(
         )
         .order_by(Fixture.kickoff_at.desc())
     )
+    return list(rows)
+
+
+async def latest_team_season_year(
+    session: AsyncSession,
+    team_id: int,
+    *,
+    provider_competition_ids: set[int] | None = None,
+) -> int | None:
+    query = (
+        select(func.max(Season.year))
+        .join(Fixture, Fixture.season_id == Season.id)
+        .join(Competition, Competition.id == Fixture.competition_id)
+        .where(
+            Fixture.provider == PROVIDER,
+            or_(Fixture.home_team_id == team_id, Fixture.away_team_id == team_id),
+        )
+    )
+    if provider_competition_ids:
+        query = query.where(Competition.provider_competition_id.in_(provider_competition_ids))
+    return await session.scalar(query)
+
+
+async def team_finished_fixtures(
+    session: AsyncSession,
+    team_id: int,
+    season_year: int,
+    *,
+    provider_competition_ids: set[int] | None = None,
+) -> list[Fixture]:
+    query = (
+        select(Fixture)
+        .join(Competition, Competition.id == Fixture.competition_id)
+        .join(Season, Season.id == Fixture.season_id)
+        .options(
+            joinedload(Fixture.competition),
+            joinedload(Fixture.season),
+            joinedload(Fixture.home_team),
+            joinedload(Fixture.away_team),
+            joinedload(Fixture.youtube_comment_cache),
+            joinedload(Fixture.event_sync_status),
+            joinedload(Fixture.analysis_cache),
+        )
+        .where(
+            Fixture.provider == PROVIDER,
+            Season.year == season_year,
+            Fixture.status_short.in_(FINISHED_STATUS_CODES),
+            or_(Fixture.home_team_id == team_id, Fixture.away_team_id == team_id),
+        )
+    )
+    if provider_competition_ids:
+        query = query.where(Competition.provider_competition_id.in_(provider_competition_ids))
+    rows = await session.scalars(query.order_by(Fixture.kickoff_at.desc()))
     return list(rows)
 
 

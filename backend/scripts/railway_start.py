@@ -27,6 +27,10 @@ PROCESS_ALIASES = {
     "fixture-events-sync-once": "fixture_event_sync_once",
     "fixture_event_sync_cron": "fixture_event_sync_once",
     "fixture-event-sync-cron": "fixture_event_sync_once",
+    "team_honours_once": "team_honours_once",
+    "team-honours-once": "team_honours_once",
+    "team_honours_cron": "team_honours_once",
+    "team-honours-cron": "team_honours_once",
 }
 
 
@@ -119,6 +123,15 @@ def main() -> None:
     if process_type == "fixture_event_sync_once":
         run_fixture_event_sync_once()
         return
+
+    if process_type == "team_honours_once":
+        limit = os.getenv("TEAM_HONOURS_SYNC_LIMIT", "25")
+        exec_module(
+            "backend.scripts.sync_team_honours",
+            "--process",
+            "--limit",
+            limit,
+        )
 
     exec_module("backend.scripts.run_fixture_sync_worker")
 

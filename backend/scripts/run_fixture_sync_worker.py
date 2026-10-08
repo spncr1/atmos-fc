@@ -8,11 +8,13 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 
+from backend.services.background_jobs import JOB_TEAM_HONOURS, process_queued_jobs
 from backend.services.sync import sync_core_football_data
 
 
 DEFAULT_INTERVAL_SECONDS = 1800
 DEFAULT_RECENT_LIMIT = 30
+DEFAULT_HONOURS_JOB_LIMIT = 5
 
 
 def env_int(name: str, default: int) -> int:
@@ -54,10 +56,16 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run one sync and exit.",
     )
+    parser.add_argument(
+        "--honours-job-limit",
+        type=int,
+        default=env_int("TEAM_HONOURS_SYNC_LIMIT", DEFAULT_HONOURS_JOB_LIMIT),
+        help="Maximum queued club-honours jobs to process after each fixture sync.",
+    )
     return parser.parse_args()
 
 
-async def run_once(recent_limit: int, include_events: bool) -> None:
+async def run_once(recent_limit: int, include_events: bool, honours_job_limit: int) -> None:
     started_at = datetime.now(timezone.utc).isoformat()
     print(
         json.dumps(
@@ -74,12 +82,17 @@ async def run_once(recent_limit: int, include_events: bool) -> None:
         recent_limit=recent_limit,
         include_events=include_events,
     )
+    honours = await process_queued_jobs(
+        limit=max(0, honours_job_limit),
+        job_types=[JOB_TEAM_HONOURS],
+    ) if honours_job_limit > 0 else {"seen": 0, "complete": 0, "failed": 0}
     print(
         json.dumps(
             {
                 "message": "fixture_sync_finished",
                 "finished_at": datetime.now(timezone.utc).isoformat(),
                 "result": result,
+                "team_honours": honours,
             },
             default=str,
         ),
@@ -98,6 +111,7 @@ async def main() -> None:
                 "recent_limit": args.recent_limit,
                 "include_events": args.include_events,
                 "once": args.once,
+                "honours_job_limit": args.honours_job_limit,
             }
         ),
         flush=True,
@@ -105,7 +119,7 @@ async def main() -> None:
 
     while True:
         try:
-            await run_once(args.recent_limit, args.include_events)
+            await run_once(args.recent_limit, args.include_events, args.honours_job_limit)
         except Exception as exc:  # noqa: BLE001 - worker must keep running after transient provider errors.
             print(
                 json.dumps(

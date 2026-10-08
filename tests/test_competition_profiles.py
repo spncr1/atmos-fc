@@ -8,6 +8,8 @@ from unittest.mock import AsyncMock, patch
 from sqlalchemy.exc import SQLAlchemyError
 
 from backend.services.competition_profiles import (
+    COMPETITION_EDITORIAL_CONTENT,
+    SUPPORTED_BY_PROVIDER_ID,
     CompetitionProfileNotFoundError,
     CompetitionProfileUnavailableError,
     competition_profile,
@@ -102,6 +104,8 @@ class CompetitionProfileTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(profile.finished_match_count, 8)
         self.assertEqual(profile.goals_scored, 24)
         self.assertEqual(profile.club_count, 2)
+        self.assertIn("since 1992", profile.summary)
+        self.assertEqual(profile.wikipedia_url, "https://en.wikipedia.org/wiki/Premier_League")
         self.assertEqual([club.name for club in profile.clubs], ["Arsenal", "Chelsea"])
         self.assertEqual(len(profile.latest_matches), 6)
         self.assertEqual(profile.latest_result_at, fixtures[0].kickoff_at)
@@ -147,6 +151,12 @@ class CompetitionProfileTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(safe_official_url("https://www.premierleague.com/"), "https://www.premierleague.com/")
         self.assertIsNone(safe_official_url("javascript:alert(1)"))
         self.assertIsNone(safe_official_url("/relative/path"))
+
+    def test_every_supported_competition_has_reviewed_editorial_content(self):
+        self.assertEqual(set(COMPETITION_EDITORIAL_CONTENT), set(SUPPORTED_BY_PROVIDER_ID))
+        for content in COMPETITION_EDITORIAL_CONTENT.values():
+            self.assertTrue(content["summary"].strip())
+            self.assertTrue(safe_official_url(content["wikipedia_url"]))
 
 
 if __name__ == "__main__":

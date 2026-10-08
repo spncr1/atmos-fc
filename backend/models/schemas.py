@@ -121,6 +121,59 @@ class TeamProfileSection(BaseModel):
     body: str
 
 
+class TeamSeasonSnapshot(BaseModel):
+    # One team's stored results and form for a selected Atmos FC season.
+
+    season_year: int
+    season_label: str
+    overview: str
+    matches_played: int = 0
+    wins: int = 0
+    draws: int = 0
+    losses: int = 0
+    goals_for: int = 0
+    goals_against: int = 0
+    form: List[str] = Field(default_factory=list)
+    latest_matches: List[MatchSummary] = Field(default_factory=list)
+
+
+class TeamMatchAnalysisSummary(BaseModel):
+    # Completed analysis for the latest stored match involving a team.
+
+    match: MatchSummary
+    overall_vibe: Dict[str, str] = Field(default_factory=dict)
+    crowd_energy: Dict[str, str] = Field(default_factory=dict)
+    peak_window: Optional[Dict[str, int]] = None
+    total_comments: int = 0
+
+
+class TeamPlayer(BaseModel):
+    # One current squad member supplied by API-Football.
+
+    provider_player_id: int
+    name: str
+    age: Optional[int] = None
+    number: Optional[int] = None
+    position: Optional[str] = None
+    photo_url: Optional[str] = None
+
+
+class TeamKitSlot(BaseModel):
+    # A current-season kit slot, ready for verified artwork when available.
+
+    label: str
+    image_url: Optional[str] = None
+    status: str = "unavailable"
+
+
+class TeamKits(BaseModel):
+    # Home and away kit presentation for the selected season.
+
+    season_label: str
+    home: TeamKitSlot
+    away: TeamKitSlot
+
+
 class TeamProfileResponse(BaseModel):
     # Team profile facts sourced from API-Football and optional enrichment.
 
@@ -148,6 +201,17 @@ class TeamProfileResponse(BaseModel):
     license_label: Optional[str] = None
     facts: Dict[str, Any] = Field(default_factory=dict)
     data_source: str = "local"
+    selected_season_year: int
+    selected_season_label: str
+    season_snapshot: TeamSeasonSnapshot
+    latest_match_analysis: Optional[TeamMatchAnalysisSummary] = None
+    current_players: List[TeamPlayer] = Field(default_factory=list)
+    current_players_updated_at: Optional[datetime] = None
+    major_trophy_count: Optional[int] = None
+    major_achievements: List[str] = Field(default_factory=list)
+    major_honours_status: str = "unavailable"
+    achievements_source_url: Optional[str] = None
+    kits: TeamKits
 
 
 class CompetitionClub(BaseModel):
@@ -172,6 +236,7 @@ class CompetitionProfileResponse(BaseModel):
     logo_url: Optional[str] = None
     flag_url: Optional[str] = None
     official_website: Optional[str] = None
+    wikipedia_url: Optional[str] = None
     summary: str
     season_year: int
     season_label: str

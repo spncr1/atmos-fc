@@ -70,8 +70,8 @@ function renderMatchHeader(match) {
   matchDetailEl.textContent = [formatDate(match.date), match.venue || "Venue unavailable"].filter(Boolean).join(" · ");
   setCrest(homeCrestEl, match.home_crest);
   setCrest(awayCrestEl, match.away_crest);
-  setTeamLink(homeTeamLinkEl, match.home_team_id, match.home);
-  setTeamLink(awayTeamLinkEl, match.away_team_id, match.away);
+  setTeamLink(homeTeamLinkEl, match.home_team_id, match.home, match.season_year);
+  setTeamLink(awayTeamLinkEl, match.away_team_id, match.away, match.season_year);
   homeShortEl.textContent = displayTeamName(match, "home");
   awayShortEl.textContent = displayTeamName(match, "away");
   homeFullEl.textContent = `${match.home} (H)`;
@@ -444,7 +444,7 @@ function renderEvents(items, status = "unchecked") {
 }
 
 function eventTimelineMessage(status = "unchecked") {
-  if (status === "unavailable") return "Match event timeline is unavailable from API-Football.";
+  if (status === "unavailable") return "Match event timeline is unavailable.";
   if (status === "failed") return "Match event data could not be refreshed right now.";
   if (status === "pending") return "Match event timeline is still syncing. Try again shortly.";
   return "Match event timeline has not been fetched yet. Try again shortly.";
@@ -489,7 +489,7 @@ function setCrest(target, src) {
   target.onerror = () => { target.hidden = true; };
 }
 
-function setTeamLink(target, teamId, teamName) {
+function setTeamLink(target, teamId, teamName, seasonYear) {
   if (!target) return;
   if (!teamId) {
     target.removeAttribute("href");
@@ -498,7 +498,8 @@ function setTeamLink(target, teamId, teamName) {
     target.onclick = null;
     return;
   }
-  target.href = `team.html?team_id=${encodeURIComponent(teamId)}`;
+  const season = seasonYear ? `&season=${encodeURIComponent(seasonYear)}` : "";
+  target.href = `team.html?team_id=${encodeURIComponent(teamId)}${season}`;
   target.title = `Open ${teamName || "team"} profile`;
   target.removeAttribute("aria-disabled");
   target.onclick = storeAnalysisReturnUrl;
@@ -577,9 +578,15 @@ function setStatus(message) {
 
 function setupBackLink() {
   if (!backLinkEl) return;
-  backLinkEl.href = params.get("from") === "competition"
-    ? sessionStorage.getItem("competitionReturnUrl") || "index.html"
-    : sessionStorage.getItem("resultsReturnUrl") || "results.html";
+  if (params.get("from") === "competition") {
+    backLinkEl.href = sessionStorage.getItem("competitionReturnUrl") || "index.html";
+    return;
+  }
+  if (params.get("from") === "team") {
+    backLinkEl.href = sessionStorage.getItem("teamReturnUrl") || "index.html";
+    return;
+  }
+  backLinkEl.href = sessionStorage.getItem("resultsReturnUrl") || "results.html";
 }
 
 function escapeHtml(value) {

@@ -21,6 +21,8 @@ from backend.providers.wikidata import (
     english_wikipedia_title,
     english_wikipedia_url,
 )
+from backend.providers.errors import ProviderError
+from backend.providers.wikipedia import WikipediaClient
 from backend.repositories import football_data as repo
 
 
@@ -53,13 +55,16 @@ async def resolve_team_profile_enrichment(
     team: Team,
     *,
     client: WikidataClient | None = None,
+    wikipedia_client: WikipediaClient | None = None,
     force: bool = False,
 ) -> TeamProfileEnrichment:
     """Resolve and cache the best Wikidata profile match for a team."""
 
     cached = await repo.team_profile_enrichment_for_team(session, team)
     if cached and cached.wikidata_qid and not cached.needs_review and not force:
-        return cached
+        if cached.summary or not cached.wikipedia_title:
+            return cached
+        return await enrich_wikipedia_summary(cached, wikipedia_client or WikipediaClient())
 
     wikidata = client or WikidataClient()
     matches = await candidate_matches(wikidata, team)
@@ -75,7 +80,7 @@ async def resolve_team_profile_enrichment(
         )
 
     is_confident = best.score >= MIN_CONFIDENT_SCORE
-    return await repo.upsert_team_profile_enrichment(
+    enrichment = await repo.upsert_team_profile_enrichment(
         session,
         team,
         wikidata_qid=best.entity.entity_id if is_confident else None,
@@ -94,6 +99,60 @@ async def resolve_team_profile_enrichment(
             "candidates": [match_payload(match) for match in matches[:5]],
         },
     )
+    if is_confident and enrichment.wikipedia_title:
+        return await enrich_wikipedia_summary(enrichment, wikipedia_client or WikipediaClient())
+    return enrichment
+
+
+async def enrich_wikipedia_summary(
+    enrichment: TeamProfileEnrichment,
+    client: WikipediaClient,
+) -> TeamProfileEnrichment:
+    """Cache a readable Wikipedia introduction without blocking Wikidata facts."""
+
+    try:
+        payload = await client.page_summary(enrichment.wikipedia_title or "")
+    except ProviderError:
+        return enrichment
+
+    extract = payload.get("extract")
+    summary = concise_wikipedia_summary(extract if isinstance(extract, str) else None)
+    if not summary:
+        return enrichment
+
+    enrichment.summary = summary
+    enrichment.source_updated_at = datetime.now(timezone.utc)
+    enrichment.license_label = "Wikipedia text: CC BY-SA 4.0; Wikidata: CC0"
+    raw_payload = dict(enrichment.raw_payload or {})
+    raw_payload["wikipedia_summary"] = {
+        "title": enrichment.wikipedia_title,
+        "pageid": payload.get("pageid"),
+        "timestamp": payload.get("timestamp"),
+    }
+    enrichment.raw_payload = raw_payload
+    return enrichment
+
+
+def concise_wikipedia_summary(value: str | None, *, max_characters: int = 560) -> str | None:
+    """Keep a short readable introduction rather than an entire article extract."""
+
+    clean = " ".join(str(value or "").split())
+    if not clean:
+        return None
+    sentences = re.split(r"(?<=[.!?])\s+", clean)
+    selected: list[str] = []
+    for sentence in sentences:
+        candidate = " ".join([*selected, sentence]).strip()
+        if selected and len(candidate) > max_characters:
+            break
+        selected.append(sentence)
+        if len(selected) >= 3:
+            break
+    summary = " ".join(selected).strip()
+    if len(summary) <= max_characters:
+        return summary
+    clipped = summary[: max_characters + 1].rsplit(" ", 1)[0].rstrip(" ,;:")
+    return f"{clipped}…"
 
 
 async def candidate_matches(client: WikidataClient, team: Team) -> list[TeamProfileMatch]:

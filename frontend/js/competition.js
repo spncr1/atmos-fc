@@ -56,7 +56,7 @@ function renderCompetition(competition) {
     metric("Latest match", competition.latest_result_at ? formatDate(competition.latest_result_at) : "None yet"),
   ].join("");
   renderMatches(competition.latest_matches || []);
-  renderClubs(competition.clubs || []);
+  renderClubs(competition.clubs || [], competition.season_year);
   renderSources(competition);
 }
 
@@ -84,14 +84,14 @@ function renderMatches(matches) {
   });
 }
 
-function renderClubs(clubs) {
+function renderClubs(clubs, seasonYear) {
   if (!clubs.length) {
     clubsEl.innerHTML = emptyState("No clubs are represented by stored fixtures for this season yet.");
     return;
   }
   clubsEl.style.setProperty("--club-columns", clubColumnCount(clubs.length));
   clubsEl.innerHTML = clubs.map((club) => `
-    <a class="competition-club" href="team.html?team_id=${encodeURIComponent(club.provider_team_id)}&from=competition" data-club-link>
+    <a class="competition-club" href="team.html?team_id=${encodeURIComponent(club.provider_team_id)}&season=${encodeURIComponent(seasonYear)}&from=competition" data-club-link>
       ${crest(club.logo_url, club.name)}
       <span>${escapeHtml(club.name)}</span>
     </a>
@@ -110,9 +110,10 @@ function clubColumnCount(clubCount) {
 
 function renderSources(competition) {
   const officialUrl = safeUrl(competition.official_website);
+  const wikipediaUrl = safeUrl(competition.wikipedia_url);
   const links = [
     officialUrl ? `<li><a href="${escapeAttr(officialUrl)}" target="_blank" rel="noopener noreferrer">Official competition website</a></li>` : "",
-    `<li><a href="https://www.api-football.com/" target="_blank" rel="noopener noreferrer">API-Football</a></li>`,
+    wikipediaUrl ? `<li><a href="${escapeAttr(wikipediaUrl)}" target="_blank" rel="noopener noreferrer">Wikipedia</a></li>` : "",
   ].filter(Boolean).join("");
   sourcesEl.innerHTML = `
     <h2>Sources</h2>
