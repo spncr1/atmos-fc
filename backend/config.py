@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from backend.project_version import PROJECT_VERSION
+
 ENV_FILE = Path(__file__).resolve().parent / ".env"
 
 load_dotenv(ENV_FILE)
@@ -26,7 +28,7 @@ class Settings(BaseSettings):
         alias="WIKIDATA_ENTITY_DATA_URL",
     )
     wikimedia_user_agent: str = Field(
-        default="AtmosFC/0.1 (https://atmosfc-v1.vercel.app)",
+        default=f"AtmosFC/{PROJECT_VERSION} (https://atmosfc-v1.vercel.app)",
         alias="WIKIMEDIA_USER_AGENT",
     )
     football_data_api_key: str = Field(default="", alias="FOOTBALL_DATA_API_KEY")

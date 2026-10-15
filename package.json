@@ -1,6 +1,6 @@
 {
   "name": "atmosfc",
-  "version": "0.1.0",
+  "private": true,
   "scripts": {
     "dev": "echo '\nFrontend: http://localhost:3000\nBackend:  http://localhost:8000\n' && concurrently -n BACKEND,FRONTEND -c blue,green \"npm run backend\" \"npm run frontend\"",
     "backend": "source venv/bin/activate && uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000",

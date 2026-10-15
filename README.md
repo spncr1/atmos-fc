@@ -8,6 +8,12 @@ The aim is to turn thousands of scattered reactions into one centralised view of
 
 *Live version: https://atmosfc-v1.vercel.app/*
 
+**Current version:** 1.2.0
+
+**Lifecycle stage:** MVP
+
+The root [`VERSION`](VERSION) file is the authoritative product-version source. See [`CHANGELOG.md`](CHANGELOG.md) for the evidence-backed milestone history and [`PRODUCT_RULES.md`](PRODUCT_RULES.md) for Atmos FC-specific content rules.
+
 ## The problem
 
 Following football in the modern era can feel more emotionally taxing than ever, especially when more and more high-profile matches are creating multitudes of highlight reels, reaction clips, posts, replies, and comment sections across the many social media platforms people have access to. 

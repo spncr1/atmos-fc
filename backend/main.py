@@ -9,6 +9,7 @@ from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import get_settings
+from backend.project_version import PROJECT_VERSION
 from backend.database.session import get_sessionmaker
 from backend.models.schemas import (
     AnalyseRequest,
@@ -42,7 +43,7 @@ from backend.services.sentiment import analyse_comments, energy_label
 
 ANALYSIS_ALGORITHM_VERSION = "match_context_v2"
 
-app = FastAPI(title="Atmos API", version="0.1.0")
+app = FastAPI(title="Atmos API", version=PROJECT_VERSION)
 settings = get_settings()
 
 app.add_middleware(
