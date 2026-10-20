@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "17 */6 * * *"
   workflow_dispatch:
+    inputs:
+      simulate_validation_failure:
+        description: "Corrupt the generated pack to verify that validation blocks publication and deployment"
+        type: boolean
+        default: false
   push:
     branches: [main]
 
@@ -51,6 +56,10 @@ jobs:
 
       - name: Refresh current finished results
         run: python -m backend.scripts.refresh_current_results
+
+      - name: Simulate invalid generated data
+        if: ${{ inputs.simulate_validation_failure }}
+        run: printf '{}\n' > frontend/data/current/current-season.json
 
       - name: Validate archive and current pack
         run: python -m backend.scripts.validate_showcase
