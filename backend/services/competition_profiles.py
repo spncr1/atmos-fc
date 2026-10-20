@@ -176,6 +176,7 @@ async def competition_profile(
     clubs = [
         CompetitionClub(
             provider_team_id=team.provider_team_id,
+            team_key=str(team.provider_team_id),
             name=team.name,
             logo_url=team.logo_url,
             country_name=team.country_name,

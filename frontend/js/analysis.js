@@ -70,8 +70,8 @@ function renderMatchHeader(match) {
   matchDetailEl.textContent = [formatDate(match.date), match.venue || "Venue unavailable"].filter(Boolean).join(" · ");
   setCrest(homeCrestEl, match.home_crest);
   setCrest(awayCrestEl, match.away_crest);
-  setTeamLink(homeTeamLinkEl, match.home_team_id, match.home, match.season_year);
-  setTeamLink(awayTeamLinkEl, match.away_team_id, match.away, match.season_year);
+  setTeamLink(homeTeamLinkEl, match.home_team_key || match.home_team_id, match.home, match.season_year);
+  setTeamLink(awayTeamLinkEl, match.away_team_key || match.away_team_id, match.away, match.season_year);
   homeShortEl.textContent = displayTeamName(match, "home");
   awayShortEl.textContent = displayTeamName(match, "away");
   homeFullEl.textContent = `${match.home} (H)`;

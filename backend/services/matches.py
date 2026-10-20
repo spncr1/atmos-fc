@@ -628,6 +628,8 @@ def fixture_to_summary(
         away=away_team.name,
         home_team_id=home_team.provider_team_id,
         away_team_id=away_team.provider_team_id,
+        home_team_key=str(home_team.provider_team_id),
+        away_team_key=str(away_team.provider_team_id),
         home_short_name=home_team.name,
         away_short_name=away_team.name,
         home_tla=team_code(home_team),
@@ -656,8 +658,19 @@ def fixture_to_summary(
         youtube_checked_at=youtube_checked_at(youtube_cache),
         event_feed_status=event_feed_status(event_sync_status),
         event_feed_checked_at=event_feed_checked_at(event_sync_status),
+        analysis_available=analysis_is_available(fixture),
     )
 
+
+def analysis_is_available(fixture: Fixture) -> bool:
+    cache = fixture.__dict__.get("analysis_cache")
+    return bool(
+        cache
+        and cache.status == "complete"
+        and isinstance(cache.payload, dict)
+        and isinstance(cache.payload.get("meta"), dict)
+        and cache.payload["meta"].get("analysis_version") == "match_context_v2"
+    )
 
 def app_competition_code(competition: Competition) -> str:
     return PROVIDER_ID_TO_COMPETITION_CODE.get(

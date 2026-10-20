@@ -863,3 +863,6 @@
 
   .team-honours-grid { grid-template-columns: 1fr; }
 }
+
+article.team-result { cursor: default; }
+article.team-result:hover { background: transparent; }

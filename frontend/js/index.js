@@ -56,6 +56,16 @@ async function loadRecentMatches(competition = selectedCompetition()) {
 
 function renderRecentSyncNotice(sync) {
   if (!recentSyncNotice) return;
+  if (sync?.coverage_mode === "refreshed" && sync.updated_at) {
+    recentSyncNotice.textContent = `Latest results updated ${formatDate(sync.updated_at)}.`;
+    recentSyncNotice.hidden = false;
+    return;
+  }
+  if (sync?.coverage_mode === "archive" && sync.results_through) {
+    recentSyncNotice.textContent = `Results available through ${formatDate(sync.results_through)}.`;
+    recentSyncNotice.hidden = false;
+    return;
+  }
   if (!sync || sync.is_fresh || !VISIBLE_SYNC_STATUSES.has(sync.status)) {
     recentSyncNotice.hidden = true;
     recentSyncNotice.textContent = "";
@@ -269,8 +279,12 @@ function renderMatches(target, matches) {
 }
 
 function matchCard(match) {
+  const tag = match.analysis_available ? "button" : "article";
+  const matchData = match.analysis_available
+    ? ` data-match="${encodeURIComponent(JSON.stringify(match))}"`
+    : "";
   return `
-    <button class="match-card" data-match="${encodeURIComponent(JSON.stringify(match))}">
+    <${tag} class="match-card"${matchData}>
       <span class="match-card__meta">${match.competition} - ${formatDate(match.date)}</span>
       <span class="match-card__teams">
         <span class="match-card__team">${teamCrest(match.home_crest, match.home)}${displayTeamName(match, "home")}</span>
@@ -281,7 +295,7 @@ function matchCard(match) {
         ${scoreContextMarkup(match)}
       </span>
       <span class="match-card__round">${match.round || match.season || ""}</span>
-    </button>
+    </${tag}>
   `;
 }
 

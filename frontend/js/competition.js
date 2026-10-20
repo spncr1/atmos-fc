@@ -42,6 +42,7 @@ function renderCompetition(competition) {
   document.title = `${competition.name} ${competition.season_label} - Atmos FC Competition Database`;
   nameEl.textContent = competition.name;
   summaryEl.textContent = competition.summary;
+  renderCoverageStatus(competition.coverage_status);
   setCompetitionLogo(competition.logo_url, competition.name);
   factsEl.innerHTML = [
     fact("Country/region", competition.country_name || "Unavailable"),
@@ -65,20 +66,27 @@ function renderMatches(matches) {
     matchesEl.innerHTML = emptyState("No finished matches are stored for this competition and season yet.");
     return;
   }
-  matchesEl.innerHTML = matches.map((match) => `
-    <button class="competition-result" type="button" data-match="${escapeAttr(encodeURIComponent(JSON.stringify(match)))}">
-      <span class="competition-result-meta">
-        <span>${escapeHtml(match.round || "Stage unavailable")}</span>
-        <span>${escapeHtml(formatDate(match.date))}</span>
-      </span>
-      <span class="competition-result-teams">
-        <span class="competition-result-team">${crest(match.home_crest, match.home)}<span>${escapeHtml(match.home)}</span></span>
-        <strong class="competition-result-score">${escapeHtml(displayScore(match))}</strong>
-        <span class="competition-result-team"><span>${escapeHtml(match.away)}</span>${crest(match.away_crest, match.away)}</span>
-      </span>
-      <span class="competition-result-action">Analyse</span>
-    </button>
-  `).join("");
+  matchesEl.innerHTML = matches.map((match) => {
+    const tag = match.analysis_available ? "button" : "article";
+    const matchData = match.analysis_available
+      ? ` type="button" data-match="${escapeAttr(encodeURIComponent(JSON.stringify(match)))}"`
+      : "";
+    const action = match.analysis_available ? '<span class="competition-result-action">Analyse</span>' : "";
+    return `
+      <${tag} class="competition-result"${matchData}>
+        <span class="competition-result-meta">
+          <span>${escapeHtml(match.round || "Stage unavailable")}</span>
+          <span>${escapeHtml(formatDate(match.date))}</span>
+        </span>
+        <span class="competition-result-teams">
+          <span class="competition-result-team">${crest(match.home_crest, match.home)}<span>${escapeHtml(match.home)}</span></span>
+          <strong class="competition-result-score">${escapeHtml(displayScore(match))}</strong>
+          <span class="competition-result-team"><span>${escapeHtml(match.away)}</span>${crest(match.away_crest, match.away)}</span>
+        </span>
+        ${action}
+      </${tag}>
+    `;
+  }).join("");
   matchesEl.querySelectorAll("[data-match]").forEach((button) => {
     button.addEventListener("click", () => openMatch(JSON.parse(decodeURIComponent(button.dataset.match))));
   });
@@ -91,7 +99,7 @@ function renderClubs(clubs, seasonYear) {
   }
   clubsEl.style.setProperty("--club-columns", clubColumnCount(clubs.length));
   clubsEl.innerHTML = clubs.map((club) => `
-    <a class="competition-club" href="team.html?team_id=${encodeURIComponent(club.provider_team_id)}&season=${encodeURIComponent(seasonYear)}&from=competition" data-club-link>
+    <a class="competition-club" href="team.html?team_id=${encodeURIComponent(club.team_key || club.provider_team_id)}&season=${encodeURIComponent(seasonYear)}&from=competition" data-club-link>
       ${crest(club.logo_url, club.name)}
       <span>${escapeHtml(club.name)}</span>
     </a>
@@ -106,6 +114,13 @@ function clubColumnCount(clubCount) {
   if (clubCount <= 24) return 4;
   if (clubCount <= 40) return 5;
   return 6;
+}
+
+function renderCoverageStatus(status) {
+  const existing = document.querySelector("[data-competition-coverage]");
+  if (existing) existing.remove();
+  if (!status?.label) return;
+  summaryEl.insertAdjacentHTML("afterend", `<p class="competition-coverage" data-competition-coverage>${escapeHtml(status.label)}</p>`);
 }
 
 function renderSources(competition) {

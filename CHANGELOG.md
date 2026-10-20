@@ -4,6 +4,14 @@ This changelog follows Semantic Versioning. The root `VERSION` file is the autho
 
 ## Current baseline
 
+### 1.3.0 - 2026-10-20
+
+- Added a permanent static showcase archive for search, team profiles, competition profiles, and completed match analyses.
+- Added a provider-neutral frontend data layer that works without Railway or Neon in production.
+- Added cumulative current-season result refreshes for eight competitions with canonical team mapping and fixture deduplication.
+- Added validation, integrity checksums, generated-data secret scanning, and failure-safe refresh publishing.
+- Added six-hour GitHub Actions refresh and validated Vercel deployment automation.
+
 ### 1.2.0 - Established 2026-10-15
 
 Atmos FC is a deployed football match-search and fan-reaction analysis MVP with competition and club profile experiences, persistent football data, fixture and event syncing, and provider-outage handling.

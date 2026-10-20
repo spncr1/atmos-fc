@@ -366,3 +366,12 @@
     justify-items: end;
   }
 }
+
+.competition-coverage {
+  margin: 14px 0 0;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+article.competition-result { cursor: default; }
+article.competition-result:hover { background: var(--panel); }

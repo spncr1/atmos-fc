@@ -654,3 +654,6 @@
     font-size: 0.84rem;
   }
 }
+
+article.match-row { cursor: default; }
+article.match-row:hover { border-color: var(--line); transform: none; }

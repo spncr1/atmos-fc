@@ -29,6 +29,8 @@ class MatchSummary(BaseModel):
     away: str
     home_team_id: Optional[int] = None
     away_team_id: Optional[int] = None
+    home_team_key: Optional[str] = None
+    away_team_key: Optional[str] = None
     home_short_name: Optional[str] = None
     away_short_name: Optional[str] = None
     home_tla: Optional[str] = None
@@ -57,6 +59,7 @@ class MatchSummary(BaseModel):
     youtube_checked_at: Optional[str] = None
     event_feed_status: Optional[str] = None
     event_feed_checked_at: Optional[str] = None
+    analysis_available: bool = False
 
 
 class SearchPagination(BaseModel):
@@ -178,6 +181,7 @@ class TeamProfileResponse(BaseModel):
     # Team profile facts sourced from API-Football and optional enrichment.
 
     provider_team_id: int
+    team_key: Optional[str] = None
     name: str
     code: Optional[str] = None
     country_name: Optional[str] = None

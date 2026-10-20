@@ -511,6 +511,7 @@ async def fixtures_by_provider_fixture_ids(
             joinedload(Fixture.away_team),
             joinedload(Fixture.youtube_comment_cache),
             joinedload(Fixture.event_sync_status),
+            joinedload(Fixture.analysis_cache),
         )
         .where(
             Fixture.provider == PROVIDER,
@@ -945,6 +946,7 @@ async def recent_fixtures(
             joinedload(Fixture.away_team),
             joinedload(Fixture.youtube_comment_cache),
             joinedload(Fixture.event_sync_status),
+            joinedload(Fixture.analysis_cache),
         )
         .join(Competition, Competition.id == Fixture.competition_id)
         .where(
@@ -973,6 +975,7 @@ async def recent_finished_fixtures_needing_events(
             joinedload(Fixture.home_team),
             joinedload(Fixture.away_team),
             joinedload(Fixture.event_sync_status),
+            joinedload(Fixture.analysis_cache),
         )
         .outerjoin(FixtureEventSyncStatus, FixtureEventSyncStatus.fixture_id == Fixture.id)
         .where(
@@ -1010,6 +1013,7 @@ async def search_fixtures(
             joinedload(Fixture.away_team),
             joinedload(Fixture.youtube_comment_cache),
             joinedload(Fixture.event_sync_status),
+            joinedload(Fixture.analysis_cache),
         )
         .join(Competition, Competition.id == Fixture.competition_id)
         .join(Season, Season.id == Fixture.season_id)
@@ -1124,6 +1128,7 @@ async def competition_finished_fixtures(
             joinedload(Fixture.away_team),
             joinedload(Fixture.youtube_comment_cache),
             joinedload(Fixture.event_sync_status),
+            joinedload(Fixture.analysis_cache),
         )
         .where(
             Fixture.provider == PROVIDER,

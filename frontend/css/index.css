@@ -583,3 +583,6 @@
     padding: 14px;
   }
 }
+
+article.match-card { cursor: default; }
+article.match-card:hover { border-color: var(--line); transform: none; }

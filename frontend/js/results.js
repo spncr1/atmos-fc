@@ -168,8 +168,13 @@ function renderMatches(matches, pagination, q, competition, season, notices = []
 }
 
 function matchCard(match) {
+  const tag = match.analysis_available ? "button" : "article";
+  const matchData = match.analysis_available
+    ? ` data-match="${encodeURIComponent(JSON.stringify(match))}"`
+    : "";
+  const action = match.analysis_available ? "<i>Analyse</i>" : "";
   return `
-    <button class="match-row" data-match="${encodeURIComponent(JSON.stringify(match))}">
+    <${tag} class="match-row"${matchData}>
       <span class="match-row-meta">
         <em>
           <span class="match-row-competition-full">${match.competition}</span>
@@ -186,9 +191,9 @@ function matchCard(match) {
       ${scoreContextMarkup(match)}
       <span class="match-row-footer">
         <small>${youtubeCommentLabel(match)}</small>
-        <i>Analyse</i>
+        ${action}
       </span>
-    </button>
+    </${tag}>
   `;
 }
 

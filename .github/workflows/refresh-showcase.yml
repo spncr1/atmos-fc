@@ -1,0 +1,89 @@
+name: Refresh showcase results
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atmos-showcase-production
+  cancel-in-progress: false
+
+jobs:
+  refresh-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      - name: Check out application code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore the last successful current-results pack
+        shell: bash
+        run: |
+          git fetch origin showcase-data || true
+          if git show-ref --verify --quiet refs/remotes/origin/showcase-data; then
+            mkdir -p frontend/data/current
+            git show origin/showcase-data:frontend/data/current/current-season.json > frontend/data/current/current-season.json
+            git show origin/showcase-data:frontend/data/current/recent.json > frontend/data/current/recent.json
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install backend dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh current finished results
+        run: python -m backend.scripts.refresh_current_results
+
+      - name: Validate archive and current pack
+        run: python -m backend.scripts.validate_showcase
+
+      - name: Publish the validated data pack
+        shell: bash
+        run: |
+          data_worktree="${RUNNER_TEMP}/showcase-data"
+          if git show-ref --verify --quiet refs/remotes/origin/showcase-data; then
+            git worktree add --detach "$data_worktree" origin/showcase-data
+          else
+            git worktree add --detach "$data_worktree" HEAD
+          fi
+          git -C "$data_worktree" checkout -B showcase-data
+          mkdir -p "$data_worktree/frontend/data/current"
+          cp frontend/data/current/current-season.json "$data_worktree/frontend/data/current/current-season.json"
+          cp frontend/data/current/recent.json "$data_worktree/frontend/data/current/recent.json"
+          git -C "$data_worktree" config user.name "atmos-showcase-bot"
+          git -C "$data_worktree" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$data_worktree" add frontend/data/current
+          if ! git -C "$data_worktree" diff --cached --quiet; then
+            git -C "$data_worktree" commit -m "data: refresh current results"
+            git -C "$data_worktree" push origin showcase-data
+          fi
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel production settings
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build production frontend
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy validated production build
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"

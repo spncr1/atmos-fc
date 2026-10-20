@@ -162,14 +162,19 @@ function seasonCard(snapshot) {
 }
 
 function resultRow(match) {
+  const tag = match.analysis_available ? "button" : "article";
+  const matchData = match.analysis_available
+    ? ` type="button" data-team-match="${escapeAttr(encodeURIComponent(JSON.stringify(match)))}"`
+    : "";
+  const action = match.analysis_available ? '<span class="team-result-action">Analyse</span>' : "";
   return `
-    <button class="team-result" type="button" data-team-match="${escapeAttr(encodeURIComponent(JSON.stringify(match)))}">
+    <${tag} class="team-result"${matchData}>
       <span class="team-result-meta"><strong>${escapeHtml(match.competition)}</strong><span>${escapeHtml(formatDate(match.date))}</span></span>
       <span class="team-result-team">${crest(match.home_crest)}<span>${escapeHtml(match.home)}</span></span>
       <strong class="team-result-score">${escapeHtml(displayScore(match))}</strong>
       <span class="team-result-team team-result-away"><span>${escapeHtml(match.away)}</span>${crest(match.away_crest)}</span>
-      <span class="team-result-action">Analyse</span>
-    </button>
+      ${action}
+    </${tag}>
   `;
 }
 
@@ -185,8 +190,7 @@ function latestMatchCard(analysis, latestMatches) {
   if (!analysis) {
     return sectionCard(
       "Latest match",
-      `${latestMatchScore(latest)}
-       <button class="team-primary-action team-latest-action" type="button" data-team-match="${escapeAttr(encodeURIComponent(JSON.stringify(latest)))}">Analyse match</button>`,
+      latestMatchScore(latest),
       "team-atmos-card team-latest-match-card",
     );
   }

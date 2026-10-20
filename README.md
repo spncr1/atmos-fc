@@ -8,7 +8,7 @@ The aim is to turn thousands of scattered reactions into one centralised view of
 
 *Live version: https://atmosfc-v1.vercel.app/*
 
-**Current version:** 1.2.0
+**Current version:** 1.3.0
 
 **Lifecycle stage:** MVP
 
@@ -97,9 +97,91 @@ npm run dev
 
 Then open the local frontend URL shown in the terminal.
 
+## Showcase and live data modes
+
+The public site is a hybrid portfolio deployment. Its default `showcase` mode reads versioned JSON from `frontend/data/` and does not contact Railway, Neon, YouTube, API-Football, or any other runtime backend. Search, team pages, competition pages, and the exported completed match analyses therefore continue to work if every external service is unavailable.
+
+`frontend/js/config.js` controls the mode:
+
+```js
+window.ATMOS_CONFIG = {
+  DATA_MODE: "showcase"
+};
+```
+
+Local development can explicitly use the FastAPI system by setting `window.ATMOS_DATA_MODE = "live"` before `api.js` loads, or by storing `ATMOS_DATA_MODE=live` in browser local storage. Live mode retains the existing backend routes and provider pipeline.
+
+### Public coverage
+
+Current finished results are refreshed for eight competitions:
+
+- Premier League (`PL`)
+- La Liga (`PD`)
+- Bundesliga (`BL1`)
+- Serie A (`SA`)
+- Ligue 1 (`FL1`)
+- Eredivisie (`NED1`)
+- Liga Portugal (`POR1`)
+- UEFA Champions League (`CL`)
+
+Four competitions retain clearly dated archive coverage and are not described as current:
+
+- Belgian Pro League (`BEL1`)
+- Turkish Super Lig (`TUR1`)
+- UEFA Europa League (`EL`)
+- UEFA Conference League (`UECL`)
+
+The committed archive contains all reviewed finished fixtures available at export time. Only completed `match_context_v2` analyses are public. Matches without an exported analysis still appear in results and profiles, but do not display an Analyse control and cannot start a YouTube or backend request.
+
+### Generate and validate data
+
+Export the reviewed database archive. This is a read-only database operation and publishes only after every document validates:
+
+```bash
+npm run showcase:export
+```
+
+Refresh the cumulative current-season pack. The command updates corrections, adds newly finished fixtures, retains prior data after a partial or empty response, and publishes successful competitions independently:
+
+```bash
+FOOTBALL_DATA_API_KEY=your_key npm run showcase:refresh
+```
+
+Validate schemas, counts, integrity checksums, analysis versions, and the generated-file secret scan without network access:
+
+```bash
+npm run showcase:validate
+```
+
+The archive manifest is `frontend/data/showcase/manifest.json`. The current pack has a separate checksum in `frontend/data/current/current-season.json`; together they identify the exact archive and current-result pack included in a deployment.
+
+### Scheduled production refresh
+
+The production refresh runs every six hours using `.github/workflows/refresh-showcase.yml` and Vercel CLI. It requires these repository secrets:
+
+```text
+FOOTBALL_DATA_API_KEY
+VERCEL_TOKEN
+VERCEL_ORG_ID
+VERCEL_PROJECT_ID
+```
+
+The machine-managed `showcase-data` branch stores the last successful generated current pack and is never merged into `main`. A refresh must validate before updating that branch or deploying. Vercel Git deployments must remain disabled so the workflow is the only production deployment authority; otherwise a normal Git deployment could replace a newer pack with the older committed fallback.
+
+### Re-enable the full live system
+
+Keep the existing Railway, Neon, API-Football, YouTube, and FastAPI configuration. To use it locally or in a dedicated live deployment:
+
+1. Supply the server-side variables listed below.
+2. Start the backend with `npm run backend`.
+3. Set the frontend data mode to `live` and point `ATMOS_CONFIG.API_BASE` at that backend.
+4. Re-enable the required Railway workers only after confirming provider subscriptions and spending limits.
+
+The showcase export never contains credentials, raw provider payloads, failed jobs, review states, or matching diagnostics.
+
 ## Deployment
 
-The frontend reads its backend URL from `frontend/js/config.js` in production. After deploying the FastAPI backend, set `ATMOS_CONFIG.API_BASE` to that public backend URL and redeploy the frontend.
+Production defaults to the static showcase data described above. The FastAPI backend URL remains configured for explicitly selected live mode.
 
 The Railway backend must have these environment variables:
 
