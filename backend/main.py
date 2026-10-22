@@ -153,6 +153,7 @@ async def get_search_matches(
     q: str = "",
     competition: str | None = None,
     season: str | None = None,
+    analysis_available: bool = False,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=15, ge=1, le=30),
 ):
@@ -161,7 +162,11 @@ async def get_search_matches(
     try:
         season_year = int(season) if season else None
         result = await search_matches(query=q, competition=competition, season=season_year)
-        matches = result.matches
+        matches = (
+            [match for match in result.matches if match.analysis_available]
+            if analysis_available
+            else result.matches
+        )
         total = len(matches)
         total_pages = ceil(total / page_size) if total else 0
         current_page = min(page, total_pages) if total_pages else 1

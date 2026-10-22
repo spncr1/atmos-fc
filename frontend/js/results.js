@@ -105,12 +105,15 @@ function hydrateForm() {
     const input = filterForm.elements[name];
     if (input) input.value = params.get(name) || "";
   });
+  const analysesOnly = filterForm.elements.analysis_available;
+  if (analysesOnly) analysesOnly.checked = params.get("analysis_available") === "true";
 }
 
 async function loadResults() {
   const q = params.get("q") || "";
   const competition = params.get("competition");
   const season = params.get("season");
+  const analysisAvailable = params.get("analysis_available");
   const page = currentPage();
   resultsGrid.innerHTML = "";
   clearPagination();
@@ -121,10 +124,11 @@ async function loadResults() {
       q,
       competition,
       season,
+      analysis_available: analysisAvailable,
       page,
       page_size: PAGE_SIZE,
     });
-    renderMatches(matches, pagination, q, competition, season, notices);
+    renderMatches(matches, pagination, q, competition, season, notices, analysisAvailable === "true");
   } catch (error) {
     resultsGrid.innerHTML = "";
     clearPagination();
@@ -143,19 +147,19 @@ function applyFilters() {
   window.location.href = `results.html?${nextParams.toString()}`;
 }
 
-function renderMatches(matches, pagination, q, competition, season, notices = []) {
+function renderMatches(matches, pagination, q, competition, season, notices = [], analysesOnly = false) {
   if (!matches.length) {
     resultsGrid.innerHTML = "";
     clearPagination();
     setSearchStatus(
       resultsSummary,
       notices,
-      `No matches found ${searchContext(q, competition, season)}.`,
+      `No ${analysesOnly ? "match analyses" : "matches"} found ${searchContext(q, competition, season)}.`,
     );
     return;
   }
   setSummary(
-    `${pagination.total} ${pagination.total === 1 ? "result" : "results"} ${searchContext(q, competition, season)}`,
+    `${pagination.total} ${pagination.total === 1 ? (analysesOnly ? "match analysis" : "result") : (analysesOnly ? "match analyses" : "results")} ${searchContext(q, competition, season)}`,
     notices,
   );
   resultsGrid.innerHTML = matches.map(matchCard).join("");

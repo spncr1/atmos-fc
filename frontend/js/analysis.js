@@ -444,10 +444,13 @@ function renderEvents(items, status = "unchecked") {
 }
 
 function eventTimelineMessage(status = "unchecked") {
+  if (window.ATMOS_CONFIG?.DATA_MODE === "showcase") {
+    return "Match event timeline is unavailable for this archived analysis.";
+  }
   if (status === "unavailable") return "Match event timeline is unavailable.";
-  if (status === "failed") return "Match event data could not be refreshed right now.";
-  if (status === "pending") return "Match event timeline is still syncing. Try again shortly.";
-  return "Match event timeline has not been fetched yet. Try again shortly.";
+  if (status === "failed") return "Match event timeline is unavailable.";
+  if (status === "pending") return "Match event timeline is currently unavailable.";
+  return "Match event timeline is unavailable.";
 }
 
 function reactionUnavailableMessage() {

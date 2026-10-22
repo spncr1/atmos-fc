@@ -18,13 +18,14 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload, selectinload
 
-from backend.database.models import Competition, CompetitionSeason, Fixture, Season, Team
+from backend.database.models import Competition, CompetitionSeason, Fixture, FixtureEvent, Season, Team
 from backend.database.session import get_sessionmaker
 from backend.models.schemas import (
     AnalysisResponse,
     CompetitionClub,
     CompetitionOption,
     CompetitionProfileResponse,
+    MatchEvent,
     MatchSummary,
     MetadataResponse,
     SeasonOption,
@@ -36,13 +37,15 @@ from backend.services.competition_profiles import (
     OFFICIAL_COMPETITION_WEBSITES,
     safe_official_url,
 )
-from backend.services.matches import SUPPORTED_COMPETITIONS, fixture_to_summary
+from backend.services.matches import SUPPORTED_COMPETITIONS, fixture_events_to_summary, fixture_to_summary
+from backend.services.public_analysis import timeline_is_complete
 from backend.services.team_honours import cached_honours, manual_honours
 from backend.services.team_profile_content import profile_content_for
 from backend.services.team_profiles import normalise_cached_players, parse_timestamp, profile_response
 from backend.services.team_visuals import team_visual_response
 
 ANALYSIS_VERSION = "match_context_v2"
+DEFAULT_TIMELINE_DIRECTORY = Path("backend/data/reviewed_event_timelines")
 REFRESHED_CODES = ("PL", "PD", "BL1", "SA", "FL1", "NED1", "POR1", "CL")
 ARCHIVE_ONLY_CODES = ("BEL1", "TUR1", "EL", "UECL")
 FORBIDDEN_KEYS = {
@@ -71,12 +74,64 @@ def current_analysis(fixture: Fixture) -> bool:
     )
 
 
-def public_match(fixture: Fixture) -> dict[str, Any]:
+def public_match(fixture: Fixture, *, analysis_available: bool = False) -> dict[str, Any]:
     summary = fixture_to_summary(fixture).model_dump(mode="json")
-    summary["analysis_available"] = current_analysis(fixture)
+    summary["analysis_available"] = analysis_available
     summary["home_team_key"] = str(summary["home_team_id"])
     summary["away_team_key"] = str(summary["away_team_id"])
     return MatchSummary.model_validate(summary).model_dump(mode="json")
+
+
+def load_reviewed_timelines(directory: Path) -> dict[str, dict[str, Any]]:
+    timelines: dict[str, dict[str, Any]] = {}
+    if not directory.exists():
+        return timelines
+    for path in sorted(directory.glob("*.json")):
+        value = json.loads(path.read_text())
+        fixture_id = str(value.get("fixture_id") or "")
+        if not fixture_id or fixture_id in timelines:
+            raise ValueError(f"Invalid or duplicate reviewed timeline in {path}")
+        timelines[fixture_id] = value
+    return timelines
+
+
+def reviewed_events_for_match(timeline: dict[str, Any], match: dict[str, Any]) -> list[Any]:
+    expected = {
+        "fixture_id": str(match["id"]),
+        "home": match["home"],
+        "away": match["away"],
+        "date": str(match["date"]),
+        "score": match["score"],
+    }
+    actual = {key: str(timeline.get(key)) for key in expected}
+    if actual != {key: str(value) for key, value in expected.items()}:
+        raise ValueError(f"Reviewed timeline identity does not match fixture {match['id']}")
+    events = timeline.get("events") or []
+    reviewed_match = {**match, "event_feed_status": "complete"}
+    if not timeline_is_complete(reviewed_match, events):
+        raise ValueError(f"Reviewed timeline is incomplete for fixture {match['id']}")
+    return events
+
+
+def public_analysis(
+    fixture: Fixture,
+    match: dict[str, Any],
+    timeline: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    if not current_analysis(fixture):
+        return None
+    response = AnalysisResponse.model_validate(fixture.analysis_cache.payload)
+    stored_events = fixture_events_to_summary(list(fixture.events))
+    if timeline is not None:
+        response.events = [MatchEvent.model_validate(event) for event in reviewed_events_for_match(timeline, match)]
+        match = {**match, "event_feed_status": "complete"}
+    elif stored_events:
+        response.events = stored_events
+    response.match = MatchSummary.model_validate(match)
+    if not timeline_is_complete(response.match, response.events):
+        return None
+    response.match.analysis_available = True
+    return response.model_dump(mode="json")
 
 
 def public_facts(team: Team) -> dict[str, Any]:
@@ -104,7 +159,7 @@ def validate_public_document(value: Any, path: str = "$") -> None:
         raise ValueError(f"Possible credential or internal configuration at {path}")
 
 
-async def build_bundle() -> dict[str, Any]:
+async def build_bundle(timeline_directory: Path = DEFAULT_TIMELINE_DIRECTORY) -> dict[str, Any]:
     definitions = {int(row["provider_id"]): row for row in SUPPORTED_COMPETITIONS}
     sessionmaker = get_sessionmaker()
     async with sessionmaker() as session:
@@ -118,6 +173,7 @@ async def build_bundle() -> dict[str, Any]:
                 joinedload(Fixture.youtube_comment_cache),
                 joinedload(Fixture.event_sync_status),
                 joinedload(Fixture.analysis_cache),
+                selectinload(Fixture.events).joinedload(FixtureEvent.team),
             )
             .order_by(Fixture.kickoff_at.desc(), Fixture.provider_fixture_id.desc())
         )
@@ -137,7 +193,20 @@ async def build_bundle() -> dict[str, Any]:
         )
         competition_seasons = list(competition_season_result.scalars().unique())
 
+    reviewed_timelines = load_reviewed_timelines(timeline_directory)
     summaries_by_fixture = {fixture.id: public_match(fixture) for fixture in fixtures}
+    analyses: dict[str, Any] = {}
+    for fixture in fixtures:
+        fixture_id = str(fixture.provider_fixture_id)
+        response = public_analysis(
+            fixture,
+            summaries_by_fixture[fixture.id],
+            reviewed_timelines.get(fixture_id),
+        )
+        if response is None:
+            continue
+        summaries_by_fixture[fixture.id] = response["match"]
+        analyses[fixture_id] = response
     public_matches = [summaries_by_fixture[fixture.id] for fixture in fixtures]
     fixtures_by_team_season: dict[tuple[int, int], list[Fixture]] = defaultdict(list)
     fixtures_by_competition_season: dict[tuple[int, int], list[Fixture]] = defaultdict(list)
@@ -241,14 +310,6 @@ async def build_bundle() -> dict[str, Any]:
             per_season[str(year)] = response.model_dump(mode="json")
         competition_profiles[str(provider_id)] = per_season
 
-    analyses: dict[str, Any] = {}
-    for fixture in fixtures:
-        if not current_analysis(fixture):
-            continue
-        response = AnalysisResponse.model_validate(fixture.analysis_cache.payload)
-        response.match = MatchSummary.model_validate(summaries_by_fixture[fixture.id])
-        analyses[str(fixture.provider_fixture_id)] = response.model_dump(mode="json")
-
     metadata = MetadataResponse(
         competitions=[
             CompetitionOption(
@@ -314,8 +375,8 @@ def publish(bundle: dict[str, Any], destination: Path) -> dict[str, Any]:
     return manifest
 
 
-async def run(destination: Path) -> None:
-    bundle = await build_bundle()
+async def run(destination: Path, timeline_directory: Path) -> None:
+    bundle = await build_bundle(timeline_directory)
     manifest = publish(bundle, destination)
     print(json.dumps(manifest, indent=2))
 
@@ -323,8 +384,9 @@ async def run(destination: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("frontend/data/showcase"))
+    parser.add_argument("--timelines", type=Path, default=DEFAULT_TIMELINE_DIRECTORY)
     args = parser.parse_args()
-    asyncio.run(run(args.output.resolve()))
+    asyncio.run(run(args.output.resolve(), args.timelines.resolve()))
 
 
 if __name__ == "__main__":

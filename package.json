@@ -3,11 +3,12 @@
   "private": true,
   "scripts": {
     "dev": "echo '\nFrontend: http://localhost:3000\nBackend:  http://localhost:8000\n' && concurrently -n BACKEND,FRONTEND -c blue,green \"npm run backend\" \"npm run frontend\"",
-    "backend": "source venv/bin/activate && uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000",
+    "backend": "venv/bin/python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000",
     "frontend": "python3 -m http.server 3000 --bind 127.0.0.1 --directory frontend",
-    "showcase:export": "source venv/bin/activate && python -m backend.scripts.export_showcase",
-    "showcase:refresh": "source venv/bin/activate && python -m backend.scripts.refresh_current_results",
-    "showcase:validate": "source venv/bin/activate && python -m backend.scripts.validate_showcase"
+    "showcase:export": "venv/bin/python -m backend.scripts.export_showcase",
+    "showcase:events:import": "venv/bin/python -m backend.scripts.import_reviewed_events",
+    "showcase:refresh": "venv/bin/python -m backend.scripts.refresh_current_results",
+    "showcase:validate": "venv/bin/python -m backend.scripts.validate_showcase"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

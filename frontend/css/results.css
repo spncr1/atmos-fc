@@ -101,6 +101,26 @@
   box-shadow: 0 0 0 3px rgba(200, 255, 71, 0.12);
 }
 
+.filter-panel .analysis-availability-filter {
+  display: inline-flex;
+  grid-template-columns: none;
+  align-items: center;
+  justify-self: start;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 0.82rem;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.analysis-availability-filter input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
 /* RESULTS LIST */
 .results-summary,
 .match-list {

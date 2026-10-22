@@ -9,7 +9,7 @@
     <!-- CSS stylesheet -->
     <link rel="stylesheet" href="css/global.css">
     <link rel="stylesheet" href="css/ambient-signal.css?v=20260811-signal-echoes">
-    <link rel="stylesheet" href="css/results.css?v=20261020-showcase">
+    <link rel="stylesheet" href="css/results.css?v=20261020-analysis-access">
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -93,6 +93,11 @@
 	          </label>
           <button class="primary-button" type="submit">Apply</button>
         </div>
+
+        <label class="analysis-availability-filter">
+          <input type="checkbox" name="analysis_available" value="true">
+          <span>Analyses available only</span>
+        </label>
       </form>
 
       <section class="results-summary" data-results-summary></section>
@@ -101,8 +106,8 @@
     </main>
 
     <script src="js/config.js?v=20261020-showcase"></script>
-    <script src="js/api.js?v=20261020-showcase"></script>
+    <script src="js/api.js?v=20261020-analysis-access"></script>
     <script src="js/ambient-signal.js?v=20260811-signal-echoes"></script>
-    <script src="js/results.js?v=20261020-showcase"></script>
+    <script src="js/results.js?v=20261020-analysis-access"></script>
   </body>
 </html>

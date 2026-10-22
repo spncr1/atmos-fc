@@ -1,6 +1,8 @@
 const recentGrid = document.querySelector("[data-recent]");
 const recentHeading = document.querySelector("[data-recent-heading]");
 const recentSyncNotice = document.querySelector("[data-recent-sync]");
+const recentAnalysesGrid = document.querySelector("[data-recent-analyses]");
+const analysisHeading = document.querySelector("[data-analysis-heading]");
 const searchForm = document.querySelector("[data-search-form]");
 const competitionFilters = document.querySelector("[data-competition-filters]");
 const seasonFilters = document.querySelector("[data-season-filters]");
@@ -24,9 +26,12 @@ async function init() {
   competitionLabels = labelsByCode(metadata.competitions);
   searchForm.addEventListener("submit", handleSearch);
   searchForm.querySelectorAll('input[name="competition"]').forEach((input) => {
-    input.addEventListener("change", () => loadRecentMatches(input.value));
+    input.addEventListener("change", () => {
+      loadRecentAnalyses(input.value);
+      loadRecentMatches(input.value);
+    });
   });
-  await loadRecentMatches();
+  await Promise.all([loadRecentAnalyses(), loadRecentMatches()]);
 }
 
 function renderHomeAmbientSignal() {
@@ -51,6 +56,22 @@ async function loadRecentMatches(competition = selectedCompetition()) {
   } catch (error) {
     renderRecentSyncNotice(null);
     setStatus(recentGrid, error.message || "Could not load recent matches.");
+  }
+}
+
+async function loadRecentAnalyses(competition = selectedCompetition()) {
+  updateAnalysisHeading(competition);
+  setStatus(recentAnalysesGrid, loadingAnalysisMessage(competition));
+  try {
+    const { matches } = await apiGet("/matches/search", {
+      competition,
+      analysis_available: true,
+      page: 1,
+      page_size: 12,
+    });
+    renderMatches(recentAnalysesGrid, matches, "No match analyses are available for this competition.");
+  } catch (error) {
+    setStatus(recentAnalysesGrid, error.message || "Could not load match analyses.");
   }
 }
 
@@ -267,9 +288,9 @@ function handleSearch(event) {
   window.location.href = `results.html?${params.toString()}`;
 }
 
-function renderMatches(target, matches) {
+function renderMatches(target, matches, emptyMessage = "No matches found.") {
   if (!matches.length) {
-    setStatus(target, "No matches found.");
+    setStatus(target, emptyMessage);
     return;
   }
   target.innerHTML = matches.map(matchCard).join("");
@@ -389,12 +410,22 @@ function selectedCompetition() {
 
 function updateRecentHeading(competition) {
   const label = competitionLabels[competition];
-  recentHeading.textContent = label ? `Recent ${label} matches` : "Recent matches";
+  recentHeading.textContent = label ? `Latest ${label} results` : "Latest results";
 }
 
 function loadingRecentMessage(competition) {
   const label = competitionLabels[competition];
-  return label ? `Loading recent ${label} matches...` : "Loading recent matches...";
+  return label ? `Loading latest ${label} results...` : "Loading latest results...";
+}
+
+function updateAnalysisHeading(competition) {
+  const label = competitionLabels[competition];
+  analysisHeading.textContent = label ? `Latest ${label} match analyses` : "Latest match analyses";
+}
+
+function loadingAnalysisMessage(competition) {
+  const label = competitionLabels[competition];
+  return label ? `Loading ${label} match analyses...` : "Loading match analyses...";
 }
 
 function escapeHtml(value) {

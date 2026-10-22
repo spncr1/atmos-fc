@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from backend.models.schemas import AnalysisResponse, CompetitionProfileResponse, MatchSummary, MetadataResponse, TeamProfileResponse
+from backend.services.public_analysis import timeline_is_complete
 
 SHOWCASE_FILES = ("metadata.json", "matches.json", "teams.json", "competitions.json", "analyses.json")
 FORBIDDEN_KEYS = {"raw_payload", "error_message", "needs_review", "profile_needs_review", "wikidata_qid", "matching_diagnostics"}
@@ -50,18 +51,31 @@ def validate(showcase: Path, current: Path) -> dict[str, int]:
     if len(matches) != manifest.get("fixture_count"):
         raise ValueError("Showcase fixture count does not match its manifest")
     analyses = documents["analyses.json"].get("analyses") or {}
-    for row in analyses.values():
+    for analysis_id, row in analyses.items():
         parsed = AnalysisResponse.model_validate(row)
         if parsed.meta.analysis_version != "match_context_v2":
             raise ValueError("Showcase contains a non-current analysis payload")
+        if str(parsed.match.id) != str(analysis_id):
+            raise ValueError("Showcase analysis key does not match its fixture")
+        if not parsed.match.analysis_available or not timeline_is_complete(parsed.match, parsed.events):
+            raise ValueError("Showcase contains an analysis without a complete event timeline")
     if len(analyses) != manifest.get("analysis_count"):
         raise ValueError("Showcase analysis count does not match its manifest")
+    enabled_ids = {str(row["id"]) for row in matches if row.get("analysis_available")}
+    if enabled_ids != set(analyses):
+        raise ValueError("Showcase analysis links do not match published analysis payloads")
     for team in (documents["teams.json"].get("teams") or {}).values():
         for profile in (team.get("profiles") or {}).values():
             TeamProfileResponse.model_validate(profile)
+            latest = profile.get("latest_match_analysis")
+            if latest and str((latest.get("match") or {}).get("id")) not in analyses:
+                raise ValueError("Team profile links to an unpublished analysis")
     for competition in (documents["competitions.json"].get("competitions") or {}).values():
         for profile in competition.values():
             CompetitionProfileResponse.model_validate(profile)
+            for match in profile.get("latest_matches") or []:
+                if bool(match.get("analysis_available")) != (str(match.get("id")) in analyses):
+                    raise ValueError("Competition profile has a stale analysis link")
     for name, document in {**documents, "manifest.json": manifest}.items():
         scan(document, name)
 

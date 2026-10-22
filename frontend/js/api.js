@@ -162,11 +162,13 @@ function showcaseSearch(data, params) {
   const q = normaliseSearch(String(params.q || ""));
   const competition = String(params.competition || "");
   const season = params.season === undefined || params.season === null || params.season === "" ? null : Number(params.season);
+  const analysesOnly = String(params.analysis_available || "").toLowerCase() === "true";
   const page = positiveInt(params.page, 1);
   const pageSize = Math.min(100, positiveInt(params.page_size, 15));
   const filtered = data.matches.filter(match => {
     if (competition && match.competition_code !== competition) return false;
     if (Number.isInteger(season) && Number(match.season_year) !== season) return false;
+    if (analysesOnly && !match.analysis_available) return false;
     if (!q) return true;
     return normaliseSearch([match.home, match.away, match.competition, match.round, match.season].join(" ")).includes(q);
   });

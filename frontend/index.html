@@ -9,7 +9,7 @@
     <!-- CSS stylesheet -->
     <link rel="stylesheet" href="css/global.css">
     <link rel="stylesheet" href="css/ambient-signal.css?v=20260811-signal-echoes">
-    <link rel="stylesheet" href="css/index.css?v=20261020-showcase">
+    <link rel="stylesheet" href="css/index.css?v=20261020-analysis-access">
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -57,12 +57,26 @@
 	              <label class="filter-option"><input type="radio" name="season" value="" checked><span>All</span></label>
 	            </div>
 	          </fieldset>
+
+          <fieldset class="filter-section">
+            <span class="search-field">Availability:</span>
+            <div class="filter-tabs">
+              <label class="filter-option"><input type="checkbox" name="analysis_available" value="true"><span>Analyses available</span></label>
+            </div>
+          </fieldset>
         </form>
       </section>
 
       <section class="match-search-layout recent-section">
+        <div class="section-head" data-analysis-heading>
+          Latest match analyses
+        </div>
+        <div class="match-grid" data-recent-analyses></div>
+      </section>
+
+      <section class="match-search-layout recent-section recent-results-section">
         <div class="section-head" data-recent-heading>
-          Recent matches
+          Latest results
         </div>
         <div class="recent-sync-notice" data-recent-sync hidden></div>
         <div class="match-grid" data-recent></div>
@@ -70,8 +84,8 @@
     </main>
 
     <script src="js/config.js?v=20261020-showcase"></script>
-    <script src="js/api.js?v=20261020-showcase"></script>
+    <script src="js/api.js?v=20261020-analysis-access"></script>
     <script src="js/ambient-signal.js?v=20260811-signal-echoes"></script>
-    <script src="js/index.js?v=20261020-showcase"></script>
+    <script src="js/index.js?v=20261020-analysis-access"></script>
   </body>
 </html>
