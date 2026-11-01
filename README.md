@@ -168,6 +168,20 @@ VERCEL_PROJECT_ID
 
 The machine-managed `showcase-data` branch stores the last successful generated current pack and is never merged into `main`. A refresh must validate before updating that branch or deploying. Vercel Git deployments must remain disabled so the workflow is the only production deployment authority; otherwise a normal Git deployment could replace a newer pack with the older committed fallback.
 
+### Daily match-analysis refresh
+
+`.github/workflows/refresh-analyses.yml` selects up to five recently finished API-Football fixtures each day, after the 24-hour reaction window has closed. It reuses saved analyses, retries unavailable comments after a cooldown, and calls the existing analysis route for selected matches. The job then exports and validates the static archive. Only a validated archive is published to the machine-managed `showcase-analyses` branch. The six-hour results workflow picks up that archive for its next deployment; an analysis-job failure does not stop results from refreshing.
+
+The analysis job needs these additional GitHub Actions secrets, scoped to the existing backend database and providers:
+
+```text
+DATABASE_URL
+API_FOOTBALL_API_KEY
+YOUTUBE_API_KEY
+```
+
+No raw credentials or analysis payloads are logged. A successful job does not guarantee an analysis for every match: highlights, first-24-hour comments, and a complete event timeline must be available. When results from the last three days exist but the newest published analysis is over seven days old, the analysis job fails visibly after preserving the validated archive. The command can be run with a cautious wider backfill window using `python -m backend.scripts.refresh_match_analyses --limit 5 --lookback-days 42`; review its output before exporting or publishing older matches.
+
 ### Re-enable the full live system
 
 Keep the existing Railway, Neon, API-Football, YouTube, and FastAPI configuration. To use it locally or in a dedicated live deployment:

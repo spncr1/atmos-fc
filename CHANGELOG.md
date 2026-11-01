@@ -4,6 +4,12 @@ This changelog follows Semantic Versioning. The root `VERSION` file is the autho
 
 ## Current baseline
 
+### 1.4.0 - 2026-11-01
+
+- Added a daily, bounded match-analysis refresh using the existing analysis service and backend database.
+- Added validation and publication of the refreshed analysis archive, with safeguards against losing previously published analyses.
+- Connected the six-hour results deployment to the latest validated analysis archive and added a freshness alert.
+
 ### 1.3.0 - 2026-10-20
 
 - Added a permanent static showcase archive for search, team profiles, competition profiles, and completed match analyses.

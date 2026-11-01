@@ -46,6 +46,16 @@ jobs:
             git show origin/showcase-data:frontend/data/current/recent.json > frontend/data/current/recent.json
           fi
 
+      - name: Restore the last validated analysis archive
+        shell: bash
+        run: |
+          git fetch origin showcase-analyses || true
+          if git show-ref --verify --quiet refs/remotes/origin/showcase-analyses; then
+            for name in manifest metadata matches teams competitions analyses; do
+              git show "origin/showcase-analyses:frontend/data/showcase/${name}.json" > "frontend/data/showcase/${name}.json"
+            done
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:

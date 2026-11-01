@@ -1,0 +1,104 @@
+name: Refresh showcase analyses
+
+on:
+  schedule:
+    - cron: "47 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atmos-showcase-production
+  cancel-in-progress: false
+
+jobs:
+  refresh-analyses:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out application code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Restore the last validated current-results pack
+        shell: bash
+        run: |
+          git fetch origin showcase-data || true
+          if git show-ref --verify --quiet refs/remotes/origin/showcase-data; then
+            mkdir -p frontend/data/current
+            git show origin/showcase-data:frontend/data/current/current-season.json > frontend/data/current/current-season.json
+            git show origin/showcase-data:frontend/data/current/recent.json > frontend/data/current/recent.json
+          fi
+
+      - name: Restore the last validated analysis archive
+        shell: bash
+        run: |
+          git fetch origin showcase-analyses || true
+          if git show-ref --verify --quiet refs/remotes/origin/showcase-analyses; then
+            for name in manifest metadata matches teams competitions analyses; do
+              git show "origin/showcase-analyses:frontend/data/showcase/${name}.json" > "frontend/data/showcase/${name}.json"
+            done
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install backend dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create recent match analyses
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          API_FOOTBALL_API_KEY: ${{ secrets.API_FOOTBALL_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: python -m backend.scripts.refresh_match_analyses --limit 5
+
+      - name: Export saved analyses and club profiles
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          cp frontend/data/showcase/manifest.json "$RUNNER_TEMP/previous-showcase-manifest.json"
+          cp frontend/data/showcase/analyses.json "$RUNNER_TEMP/previous-showcase-analyses.json"
+          python -m backend.scripts.export_showcase
+          python - "$RUNNER_TEMP/previous-showcase-manifest.json" "$RUNNER_TEMP/previous-showcase-analyses.json" <<'PY'
+          import json, sys
+          previous = json.load(open(sys.argv[1]))["analysis_count"]
+          current = json.load(open("frontend/data/showcase/manifest.json"))["analysis_count"]
+          if current < previous:
+              raise SystemExit(f"Analysis count fell from {previous} to {current}; keeping the previous bundle")
+          previous_ids = set(json.load(open(sys.argv[2]))["analyses"])
+          current_ids = set(json.load(open("frontend/data/showcase/analyses.json"))["analyses"])
+          if previous_ids - current_ids:
+              raise SystemExit(f"Export lost {len(previous_ids - current_ids)} published analyses; keeping the previous bundle")
+          PY
+
+      - name: Validate the complete showcase pack
+        run: python -m backend.scripts.validate_showcase
+
+      - name: Publish the validated analysis archive
+        shell: bash
+        run: |
+          data_worktree="${RUNNER_TEMP}/showcase-analyses"
+          if git show-ref --verify --quiet refs/remotes/origin/showcase-analyses; then
+            git worktree add --detach "$data_worktree" origin/showcase-analyses
+          else
+            git worktree add --detach "$data_worktree" HEAD
+          fi
+          git -C "$data_worktree" checkout -B showcase-analyses
+          mkdir -p "$data_worktree/frontend/data/showcase"
+          cp frontend/data/showcase/*.json "$data_worktree/frontend/data/showcase/"
+          git -C "$data_worktree" config user.name "atmos-showcase-bot"
+          git -C "$data_worktree" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$data_worktree" add frontend/data/showcase
+          if ! git -C "$data_worktree" diff --cached --quiet; then
+            git -C "$data_worktree" commit -m "data: refresh match analyses"
+            git -C "$data_worktree" push origin showcase-analyses
+          fi
+
+      - name: Alert if published analyses are stale despite recent results
+        run: python -m backend.scripts.check_analysis_freshness
