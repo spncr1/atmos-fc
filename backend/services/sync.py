@@ -113,7 +113,7 @@ async def sync_core_football_data(
                 "sync_type": API_FOOTBALL_CORE_SYNC_TYPE,
             }
 
-        client = ApiFootballClient()
+        client = ApiFootballClient(min_interval_seconds=7.0)
         sessionmaker = get_sessionmaker()
         async with sessionmaker() as session:
             await repo.mark_running_syncs_failed(
@@ -184,7 +184,8 @@ async def sync_recent_fixture_events(
             )
             await session.commit()
             try:
-                client = ApiFootballClient()
+                client = ApiFootballClient(min_interval_seconds=7.0)
+                await client.status()
                 result = await _sync_recent_fixture_events(session, client, clean_limit)
             except Exception as exc:
                 await session.rollback()

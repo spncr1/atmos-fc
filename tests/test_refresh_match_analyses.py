@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 from backend.scripts.check_analysis_freshness import stale_analysis
-from backend.scripts.refresh_match_analyses import should_attempt
+from backend.scripts.refresh_match_analyses import should_attempt, source_is_stale
 
 
 NOW = datetime(2026, 11, 1, 12, tzinfo=timezone.utc)
@@ -54,3 +54,11 @@ def test_stale_analysis_alert_requires_recent_result_activity():
     assert stale_analysis(recent, old, NOW)
     assert not stale_analysis(recent, fresh, NOW)
     assert not stale_analysis([{"date": (NOW - timedelta(days=5)).isoformat()}], old, NOW)
+
+
+def test_source_freshness_flags_a_stalled_fixture_feed():
+    latest_result = NOW - timedelta(hours=12)
+    assert source_is_stale(latest_result, NOW - timedelta(days=6), NOW)
+    assert source_is_stale(latest_result, None, NOW)
+    assert not source_is_stale(latest_result, NOW - timedelta(days=2), NOW)
+    assert not source_is_stale(NOW - timedelta(days=5), NOW - timedelta(days=20), NOW)

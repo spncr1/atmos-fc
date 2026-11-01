@@ -6,9 +6,10 @@ import argparse
 import asyncio
 import json
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload
 
 from backend.config import get_settings
@@ -16,6 +17,7 @@ from backend.database.models import Competition, Fixture
 from backend.database.session import get_sessionmaker
 from backend.models.schemas import AnalyseRequest
 from backend.repositories.football_data import FINISHED_STATUS_CODES, PROVIDER
+from backend.scripts.check_analysis_freshness import parse_date
 from backend.scripts.export_showcase import ANALYSIS_VERSION, REFRESHED_CODES
 from backend.services.matches import SUPPORTED_COMPETITIONS
 from backend.services.public_analysis import timeline_is_complete
@@ -27,6 +29,7 @@ CURRENT_COMPETITION_IDS = {
 }
 MIN_ANALYSIS_AGE = timedelta(hours=26)
 RETRY_STATUSES = {"rate_limited", "unavailable", "no_comments", "failed"}
+SOURCE_MAX_LAG = timedelta(days=3)
 
 
 def should_attempt(fixture: Fixture, now: datetime, lookback: timedelta) -> bool:
@@ -91,6 +94,33 @@ async def candidate_ids(limit: int, lookback: timedelta, now: datetime) -> list[
     return (fresh + retries)[:limit]
 
 
+def source_is_stale(latest_result: datetime | None, latest_source: datetime | None, now: datetime) -> bool:
+    if latest_result is None or now - latest_result > timedelta(days=3):
+        return False
+    return latest_source is None or latest_result - latest_source > SOURCE_MAX_LAG
+
+
+async def check_source_freshness(now: datetime) -> None:
+    recent = json.loads(Path("frontend/data/current/recent.json").read_text()).get("matches") or []
+    result_dates = [date for row in recent if (date := parse_date(row.get("date")))]
+    latest_result = max(result_dates, default=None)
+    sessionmaker = get_sessionmaker()
+    async with sessionmaker() as session:
+        latest_source = await session.scalar(
+            select(func.max(Fixture.kickoff_at))
+            .join(Competition, Competition.id == Fixture.competition_id)
+            .where(
+                Fixture.provider == PROVIDER,
+                Fixture.status_short.in_(FINISHED_STATUS_CODES),
+                Competition.provider_competition_id.in_(CURRENT_COMPETITION_IDS),
+            )
+        )
+    if latest_source is not None:
+        latest_source = latest_source.astimezone(timezone.utc)
+    if source_is_stale(latest_result, latest_source, now):
+        raise RuntimeError("Recent results exist, but API-Football fixtures are over three days behind. Check the Railway fixture sync and provider account.")
+
+
 async def refresh(limit: int, lookback_days: int) -> dict[str, int]:
     settings = get_settings()
     missing = [name for name, value in (
@@ -101,9 +131,11 @@ async def refresh(limit: int, lookback_days: int) -> dict[str, int]:
     if missing:
         raise RuntimeError(f"Missing required analysis configuration: {', '.join(missing)}")
 
+    now = datetime.now(timezone.utc)
+    await check_source_freshness(now)
     from backend.main import analyse_match
 
-    ids = await candidate_ids(limit, timedelta(days=lookback_days), datetime.now(timezone.utc))
+    ids = await candidate_ids(limit, timedelta(days=lookback_days), now)
     result = {"eligible_selected": len(ids), "publishable": 0, "unavailable": 0, "failed": 0, "rate_limited": 0}
     for fixture_id in ids:
         try:

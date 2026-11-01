@@ -4,6 +4,12 @@ This changelog follows Semantic Versioning. The root `VERSION` file is the autho
 
 ## Current baseline
 
+### 1.4.1 - 2026-11-01
+
+- Reduced API-Football fixture and event syncs to bounded daily runs for the eight showcase competitions.
+- Added request pacing and an early account-status check to avoid repeated calls when access is suspended.
+- Made the analysis refresh fail clearly when its fixture source is behind the published results.
+
 ### 1.4.0 - 2026-11-01
 
 - Added a daily, bounded match-analysis refresh using the existing analysis service and backend database.

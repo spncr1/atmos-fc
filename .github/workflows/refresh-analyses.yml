@@ -2,7 +2,7 @@ name: Refresh showcase analyses
 
 on:
   schedule:
-    - cron: "47 2 * * *"
+    - cron: "47 4 * * *"
   workflow_dispatch:
 
 permissions:

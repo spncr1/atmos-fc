@@ -6,6 +6,7 @@ headers, and raw response envelope.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import httpx
@@ -22,11 +23,15 @@ class ApiFootballClient:
         api_key: str | None = None,
         base_url: str | None = None,
         timeout: float = 20.0,
+        min_interval_seconds: float = 0.0,
     ) -> None:
         settings = get_settings()
         self.api_key = api_key or settings.api_football_api_key
         self.base_url = (base_url or settings.api_football_base_url).rstrip("/")
         self.timeout = timeout
+        self.min_interval_seconds = max(0.0, min_interval_seconds)
+        self._request_lock = asyncio.Lock()
+        self._next_request_at = 0.0
         if not self.api_key:
             raise ProviderConfigError("API_FOOTBALL_API_KEY is not configured.")
 
@@ -170,11 +175,15 @@ class ApiFootballClient:
             if value is not None and value != ""
         }
         headers = {"x-apisports-key": self.api_key}
-        try:
-            async with httpx.AsyncClient(base_url=self.base_url, timeout=self.timeout, headers=headers) as client:
-                response = await client.get(path, params=clean_params)
-        except httpx.HTTPError as exc:
-            raise ProviderRequestError(f"API-Football request failed: {exc}") from exc
+        async with self._request_lock:
+            loop = asyncio.get_running_loop()
+            await asyncio.sleep(max(0.0, self._next_request_at - loop.time()))
+            self._next_request_at = loop.time() + self.min_interval_seconds
+            try:
+                async with httpx.AsyncClient(base_url=self.base_url, timeout=self.timeout, headers=headers) as client:
+                    response = await client.get(path, params=clean_params)
+            except httpx.HTTPError as exc:
+                raise ProviderRequestError(f"API-Football request failed: {exc}") from exc
 
         if response.status_code >= 400:
             raise ProviderResponseError(f"API-Football returned HTTP {response.status_code}: {_trim(response.text)}")

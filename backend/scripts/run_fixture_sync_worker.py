@@ -57,6 +57,11 @@ def parse_args() -> argparse.Namespace:
         help="Run one sync and exit.",
     )
     parser.add_argument(
+        "--showcase-scope",
+        action="store_true",
+        help="Limit a scheduled sync to the current season and showcase competitions.",
+    )
+    parser.add_argument(
         "--honours-job-limit",
         type=int,
         default=env_int("TEAM_HONOURS_SYNC_LIMIT", DEFAULT_HONOURS_JOB_LIMIT),
@@ -65,7 +70,26 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-async def run_once(recent_limit: int, include_events: bool, honours_job_limit: int) -> None:
+async def run_once(
+    recent_limit: int,
+    include_events: bool,
+    honours_job_limit: int,
+    showcase_scope: bool = False,
+) -> None:
+    sync_scope = {}
+    if showcase_scope:
+        from backend.scripts.export_showcase import REFRESHED_CODES
+        from backend.services.matches import SUPPORTED_COMPETITIONS
+        from backend.services.sync import current_european_season_year
+
+        sync_scope = {
+            "season_years": [current_european_season_year()],
+            "competition_ids": [
+                int(row["provider_id"])
+                for row in SUPPORTED_COMPETITIONS
+                if row["code"] in REFRESHED_CODES
+            ],
+        }
     started_at = datetime.now(timezone.utc).isoformat()
     print(
         json.dumps(
@@ -74,6 +98,7 @@ async def run_once(recent_limit: int, include_events: bool, honours_job_limit: i
                 "started_at": started_at,
                 "recent_limit": recent_limit,
                 "include_events": include_events,
+                "showcase_scope": showcase_scope,
             }
         ),
         flush=True,
@@ -81,6 +106,7 @@ async def run_once(recent_limit: int, include_events: bool, honours_job_limit: i
     result = await sync_core_football_data(
         recent_limit=recent_limit,
         include_events=include_events,
+        **sync_scope,
     )
     honours = await process_queued_jobs(
         limit=max(0, honours_job_limit),
@@ -112,6 +138,7 @@ async def main() -> None:
                 "include_events": args.include_events,
                 "once": args.once,
                 "honours_job_limit": args.honours_job_limit,
+                "showcase_scope": args.showcase_scope,
             }
         ),
         flush=True,
@@ -119,7 +146,7 @@ async def main() -> None:
 
     while True:
         try:
-            await run_once(args.recent_limit, args.include_events, args.honours_job_limit)
+            await run_once(args.recent_limit, args.include_events, args.honours_job_limit, args.showcase_scope)
         except Exception as exc:  # noqa: BLE001 - worker must keep running after transient provider errors.
             print(
                 json.dumps(
@@ -131,6 +158,8 @@ async def main() -> None:
                 ),
                 flush=True,
             )
+            if args.once:
+                raise
 
         if args.once:
             return

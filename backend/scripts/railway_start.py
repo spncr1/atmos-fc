@@ -58,7 +58,7 @@ def exec_module(module: str, *args: str) -> None:
 def run_fixture_event_sync_once() -> None:
     from backend.services.sync import sync_recent_fixture_events
 
-    limit = int(os.getenv("FIXTURE_EVENT_SYNC_LIMIT", "50"))
+    limit = min(max(1, int(os.getenv("FIXTURE_EVENT_SYNC_LIMIT", "8"))), 8)
 
     async def runner() -> None:
         print(
@@ -118,6 +118,7 @@ def main() -> None:
             "--once",
             "--recent-limit",
             recent_limit,
+            "--showcase-scope",
         )
 
     if process_type == "fixture_event_sync_once":

@@ -172,6 +172,8 @@ The machine-managed `showcase-data` branch stores the last successful generated 
 
 `.github/workflows/refresh-analyses.yml` selects up to five recently finished API-Football fixtures each day, after the 24-hour reaction window has closed. It reuses saved analyses, retries unavailable comments after a cooldown, and calls the existing analysis route for selected matches. The job then exports and validates the static archive. Only a validated archive is published to the machine-managed `showcase-analyses` branch. The six-hour results workflow picks up that archive for its next deployment; an analysis-job failure does not stop results from refreshing.
 
+The Railway fixture-sync and event-sync services are budgeted for a 100-request daily API-Football plan. Their config files schedule one run each day at 01:31 and 02:31 UTC. The fixture run reads only the current season's eight showcase competitions (at most 25 base requests); the event run checks at most eight fixtures. Both pace requests at least seven seconds apart and do not restart on failure. The analysis job starts at 04:47 UTC and checks that the database has recent fixtures before searching YouTube. Other backend usage shares the same provider quota, so monitor daily usage and adjust the scope if necessary. If the provider account is suspended, pause both Railway cron services before restoring access. Apply both Railway config files to their corresponding services, redeploy them, and verify their live schedules and restart policies before resuming; changing repository files alone does not change an already deployed Railway service.
+
 The analysis job needs these additional GitHub Actions secrets, scoped to the existing backend database and providers:
 
 ```text
