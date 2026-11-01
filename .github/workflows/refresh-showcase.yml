@@ -101,9 +101,6 @@ jobs:
       - name: Install pinned Vercel CLI
         run: npm install --global "vercel@${VERCEL_CLI_VERSION}"
 
-      - name: Verify Vercel token
-        run: vercel whoami --token="$VERCEL_TOKEN"
-
       - name: Pull Vercel production settings
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
